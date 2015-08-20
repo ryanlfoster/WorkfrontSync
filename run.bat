@@ -1,0 +1,1 @@
+java -cp .\bin;.\lib\sqljdbc_4.1\*;.\lib\jira_soap_service\*;c:\Users\chellewell\workspace\JiraSoapClient\build\classes -Djava.library.path=".\lib\sqljdbc_4.1\auth\x64" com.spillman.ProjectSynchronizer
