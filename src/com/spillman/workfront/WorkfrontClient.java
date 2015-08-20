@@ -220,6 +220,9 @@ public class WorkfrontClient {
 			if (!success) {
 				logger.error("Unable to remove parameter {}", opp);
 			}
+			else {
+				logger.debug("Removed opportunity {} from the list", opp.getName());
+			}
 		} catch (StreamClientException | JSONException e) {
 			logger.catching(e);
 		}
@@ -233,6 +236,9 @@ public class WorkfrontClient {
 			JSONObject result = client.put(Workfront.OBJCODE_POPT, optionID, map, new String[] {Workfront.ID, Workfront.IS_HIDDEN, Workfront.LABEL});
 			if (result == null) {
 				logger.error("Unable to hide parameter {}", opp);
+			}
+			else {
+				logger.debug("Hid opportunity {} in the list", opp.getName());
 			}
 		} catch (StreamClientException | JSONException e) {
 			throw new WorkfrontException(e);
@@ -280,7 +286,7 @@ public class WorkfrontClient {
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put(Workfront.LAST_JIRA_SYNC, Workfront.dateFormatter.format(project.getLastJiraSync()));
 		try {
-			logger.debug("Updating Workfront project with Jira project ID: {}", map.toString());
+			logger.debug("Updating Workfront project with last sync timestamp: {}", map.toString());
 			client.put(Workfront.OBJCODE_PROJ, project.getWorkfrontProjectID(), map);
 		} catch (StreamClientException e) {
 			throw new WorkfrontException(e);
