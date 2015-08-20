@@ -206,6 +206,10 @@ public class JiraClient {
 			// If the project key wasn't defined in Workfront, create one
 			projectKey = initializeProjectKey(project);
 		}
+		else {
+			// If it was defined, make sure it meets the requirements for a project key
+			projectKey = standardizeProjectKey(projectKey);
+		}
 
 		// Check to see if we have a unique project key
 		logger.debug("Trying project key '{}'...", projectKey);
@@ -260,6 +264,10 @@ public class JiraClient {
 			if (Character.isAlphabetic(word.charAt(0))) key.append(word.substring(0,1));
 		}
 		
+		return standardizeProjectKey(key.toString());
+	}
+
+	private String standardizeProjectKey(String key) {
 		// Project keys can only be letters
 		String projectKey = key.toString().replaceAll("[^A-Za-z]","");
 		
