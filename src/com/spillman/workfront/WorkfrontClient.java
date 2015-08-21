@@ -375,7 +375,7 @@ public class WorkfrontClient {
 		return logger.exit(activeRequests);
 	}
 	
-	public HashMap<String, Project> getActiveDevProjects(HashMap<String,Project> activeProjects, 
+	public HashMap<String, Project> updateProjectList(HashMap<String,Project> activeProjects, 
 			Date startTimestamp, Date endTimestamp) throws WorkfrontException {
 		logger.entry(activeProjects, startTimestamp, endTimestamp);
 		
@@ -517,6 +517,17 @@ public class WorkfrontClient {
 		
 		if (task.getPercentComplete() != null) {
 			fields.put(Workfront.PERCENT_COMPLETE, task.getPercentComplete());
+			// TODO:
+			// The Workfront API won't let us update the percent complete when the status of the Workfront
+			// task is Complete. It is possible to get into a situation where the status of the Workfront
+			// task is Complete, but the Epic in Jira is not complete. This happens when the Epic in Jira
+			// was once marked Done, which caused the task in Workfront to be marked Complete, and then the
+			// Epic in Jira was changed back to In Progress.
+			//
+			// To work around this issue we need to check for the scenario where the current status of the 
+			// Workfront task is Complete and the new percent complete is less than 100% complete. When we
+			// see this scenario we must set the status of the Workfront task back to In Progress. Then the
+			// API will correctly update the percent complete.
 		}
 
 		if (task.getDescription() != null) {

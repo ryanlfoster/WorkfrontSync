@@ -182,10 +182,38 @@ public class ProjectSynchronizer {
 		}
 	}
 
+	/*
+	 * Pseudo code for syncing tasks and projects:
+	 * 
+	 * Update the in memory list of active projects
+	 * For each project:
+	 *     If it hasn't been added to Jira (i.e. there is no Jira project number)
+	 *         Add it to Jira
+	 *         Update Workfront with the new project id
+	 *     Sync the project
+	 *        Sync Tasks
+	 *            Update the in memory list of active tasks
+	 *            For each task:
+	 *                If the task hasn't been added to Jira (i.e. there is no Jira issue number)
+	 *                    Add it to Jira
+	 *                        Search for the epic (identified by the Jira Epic Name field) in Jira
+	 *                        If the epic is not found
+	 *                            Add the epic to Jira
+	 *                            Add the epic to the in memory list of tasks
+	 *                        Add the issue to Jira
+	 *                        Update Workfront with the new issue number
+	 *                Otherwise
+	 *                    Query Jira for updates to the task
+	 *                    If the task has changed
+	 *                        Update the task in Workfront
+	 *            Search Jira for any new epics to be added to Workfront
+	 *        Sync Worklog
+	 *     
+	 */
 
 	private static void synchronizeProjects(Date lastSyncTimestamp, Date currentSyncTimestamp) {
 		try {
-			activeProjects = workfrontClient.getActiveDevProjects(activeProjects, lastSyncTimestamp, currentSyncTimestamp);
+			activeProjects = workfrontClient.updateProjectList(activeProjects, lastSyncTimestamp, currentSyncTimestamp);
 			
 			for (Project project : activeProjects.values()) {
 				if (project.hasJiraProjectID()) {

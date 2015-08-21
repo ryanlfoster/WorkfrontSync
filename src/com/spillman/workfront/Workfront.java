@@ -75,6 +75,7 @@ public class Workfront {
 	// Workfront Statuses
 	public static final String STATUS_CURRENT 			= "CUR";
 	public static final String STATUS_CLOSED 			= "CLS";
+	public static final String STATUS_COMPLETE 			= "CPL";
 
 	// Other Workfront Values
 	public static final String DURATION_EFFORT_DRIVEN 	= "D";
