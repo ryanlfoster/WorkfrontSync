@@ -19,12 +19,12 @@ public class JiraSQLClient {
 			+ "WHERE PROJECT = ?";			
 
 	private final static String WORK_LOG_WITH_EPIC_SQL =
-			"SELECT ID, issueid, ProjectID, Issuenum, DateWorked, HoursWorked, Worker, Description, Epic_Issuenum, IssueKey "
+			"SELECT ID, issueid, ProjectID, Issuenum, DateWorked, HoursWorked, Worker, Description, Epic_Issuenum, IssueKey, Epic_ID "
 			+ "FROM     ProjectWorkLogWithEpic "
 			+ "WHERE  (ProjectID = ?) AND (CREATED >= ?) AND (CREATED < ?)";
 	
 	private final static String WORK_LOG_WITH_EPIC_NO_START_DATE_SQL =
-			"SELECT ID, issueid, ProjectID, Issuenum, DateWorked, HoursWorked, Worker, Description, Epic_Issuenum, IssueKey "
+			"SELECT ID, issueid, ProjectID, Issuenum, DateWorked, HoursWorked, Worker, Description, Epic_Issuenum, IssueKey, Epic_ID "
 			+ "FROM     ProjectWorkLogWithEpic "
 			+ "WHERE  (ProjectID = ?) AND (CREATED < ?)";
 	

@@ -251,7 +251,7 @@ public class JiraClient {
 			wl.setHoursWorked(rs.getDouble(Jira.HOURS_WORKED));
 			wl.setJiraIssuenum(rs.getString(Jira.ISSUENUM));
 			wl.setJiraWorker(rs.getString(Jira.WORKER));
-			wl.setEpicIssuenum(rs.getString(Jira.EPIC_ISSUENUM));
+			wl.setEpicIssuenum(rs.getString(Jira.EPIC_ID));
 			wl.setJiraIssueUrl(jiraBrowseUrl + rs.getString(Jira.ISSUE_KEY));
 			worklog.add(wl);
 		}
