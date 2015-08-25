@@ -28,7 +28,10 @@ public class Workfront {
 	public static final String HOURS					= "hours";
 	public static final String ID 						= "ID";
 	public static final String IS_HIDDEN				= "isHidden";
-	public static final String JIRA_ISSUENUM			= "DE:Jira Issue Number";
+	public static final String JIRA_ISSUE_EPIC_NAME		= "DE:Jira Epic Name";
+	public static final String JIRA_ISSUE_ID			= "DE:Jira Issue ID";
+	public static final String JIRA_ISSUE_TYPE			= "DE:Jira Issue Type";
+	public static final String JIRA_ISSUE_URL			= "DE:Jira Issue URL";
 	public static final String JIRA_PROJECT_ID			= "DE:Jira Project ID";
 	public static final String JIRA_PROJECT_KEY			= "DE:Jira Project Key";
 	public static final String LABEL					= "label";
@@ -64,6 +67,7 @@ public class Workfront {
 	
 	// Workfront Modifiers
 	public static final String JIRA_ISSUENUM_MOD		= "DE:Jira Issue Number_Mod";
+	public static final String JIRA_ISSUE_ID_MOD		= "DE:Jira Issue ID_Mod";
 	public static final String LAST_UPDATE_DATE_MOD		= "lastUpdateDate_Mod";
 	public static final String LAST_UPDATE_DATE_RANGE	= "lastUpdateDate_Range";
 	public static final String MOD_BETWEEN				= "between";
@@ -71,6 +75,13 @@ public class Workfront {
 	public static final String MOD_NOT_EQUAL_TO			= "ne";
 	public static final String STATUS_MOD				= "status_Mod";
 	public static final String SYNC_WITH_JIRA_MOD		= "DE:Sync With Jira_Mod";
+	
+	//Workfront Jira Issue Types
+	public static final String JIRA_ISSUE_TYPE_BACKLOG	= "Backlog";
+	public static final String JIRA_ISSUE_TYPE_EPIC		= "Epic";
+	public static final String JIRA_ISSUE_TYPE_ESTIMATE	= "Estimate";
+	public static final String JIRA_ISSUE_TYPE_EXCEPTION= "Exception";
+	public static final String JIRA_ISSUE_TYPE_PILOT	= "Pilot";
 	
 	// Workfront Statuses
 	public static final String STATUS_CURRENT 			= "CUR";

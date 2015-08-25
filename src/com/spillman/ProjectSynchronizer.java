@@ -76,14 +76,7 @@ public class ProjectSynchronizer {
 		// Initialize the Workfront client
 		logger.debug("Initializing Workfront...");
 		try {
-			workfrontClient = new WorkfrontClient(
-				properties.getWorkfrontUrl(), 
-				properties.getWorkfrontDevPortfolioName(),
-				properties.getWorkfrontJiraTaskTemplateName(),
-				properties.getWorkfrontAccountNameParam(),
-				properties.getWorkfrontOpportunityNameParam(),
-				properties.getWorkfrontNewProjectRequestProejctID()
-			);
+			workfrontClient = new WorkfrontClient(properties);
 			workfrontClient.login(properties.getWorkfrontUsername(), properties.getWorkfrontApiKey());
 		} catch (WorkfrontException e) {
 			logger.fatal("Error trying to initialize Workfront", e);
@@ -93,12 +86,7 @@ public class ProjectSynchronizer {
 		// Initialize the Jira client
 		logger.debug("Initializing Jira...");
 		try {
-			jiraClient = new JiraClient(properties.getJiraCreateProjectUrl(), 
-					properties.getJiraUsername(),
-					properties.getJiraPassword(), 
-					properties.getJiraJDBCConnectionString(),
-					properties.getJiraBrowseUrl(),
-					properties.getProgramPrefixMap());
+			jiraClient = new JiraClient(properties);
 		} catch (JiraException e) {
 			logger.fatal("Error tyring to initialize Jira", e);
 			System.exit(-1);
@@ -150,15 +138,6 @@ public class ProjectSynchronizer {
 	
 	private static void syncrhonizeRequests(Date lastSyncTimestamp, Date currentTimestamp) {
 		try {
-			//Testing Code
-//			Opportunity[] testOpps = new Opportunity[] {
-//					new Opportunity("Redding Police, CA (4)", "01E73261-6A09-E111-99FE-005056BA0029"), // referenced by a Request
-//					new Opportunity("Ramsey County Sheriff's Department", "86AB8421-BF3A-E511-940F-0050569F8035"), // referenced by a Project
-//					new Opportunity("Red River Marshall's Office", "575785CD-15D7-E411-940F-0050569F8035") // not referenced
-//			};
-//			workfrontClient.removeOpportunities(Arrays.asList(testOpps));
-			//END Testing Code
-
 			workfrontClient.removeOpportunities(crmClient.getClosedOpportunities(lastSyncTimestamp));
 			workfrontClient.addOpportunities(crmClient.getNewOpportunities(lastSyncTimestamp));
 			workfrontClient.addAccounts(crmClient.getNewAccounts(lastSyncTimestamp));
@@ -192,7 +171,11 @@ public class ProjectSynchronizer {
 	 *         Update Workfront with the new project id
 	 *     Sync the project
 	 *        Sync Tasks
-	 *            Update the in memory list of active tasks
+	 *            Update the in memory list of active tasks 
+	 *                If there is not date, get all active tasks, 
+	 *                Otherwise just get tasks that have changed since the last sync
+	 *                For each task:
+	 *                    If the task is not in the in-memory list, add it
 	 *            For each task:
 	 *                If the task hasn't been added to Jira (i.e. there is no Jira issue number)
 	 *                    Add it to Jira
@@ -263,41 +246,22 @@ public class ProjectSynchronizer {
 		ArrayList<Task> tasks = jiraClient.getEpics(project.getJiraProjectID());
 		
 		for (Task task : tasks) {
-			if (project.hasTask(task.getJiraIssuenum())) {
-				if (taskHasChanged(task, project.getDevTask(task.getJiraIssuenum()))) {
-					logger.debug("Updating task '{}'...", task.getJiraIssuenum());
+			if (project.hasTask(task.getJiraIssueID())) {
+				if (task.equals(project.getDevTask(task.getJiraIssueID()))) {
+					logger.debug("Updating task '{}'...", task.getJiraIssueID());
 					Task t = workfrontClient.updateTask(project, task);
 					// replace the current task with the new updated task.
 					project.addDevTask(t);
 				}
 				else {
-					logger.debug("Task {} hasn't changed", task.getJiraIssuenum());
+					logger.debug("Task {} hasn't changed", task.getJiraIssueID());
 				}
 			}
 			else {
-				logger.debug("Adding task '{}'...", task.getJiraIssuenum());
+				logger.debug("Adding task '{}'...", task.getJiraIssueID());
 				Task newTask = workfrontClient.addTaskToProject(project, task);
 				project.addDevTask(newTask);
 			}	
 		}
-	}
-
-
-	private static boolean taskHasChanged(Task newTask, Task curTask) {
-		logger.entry(newTask, curTask);
-		return logger.exit(
-		// Check the assignee
-		!Objects.equals(newTask.getAssigneeName(), curTask.getAssigneeName()) ||
-		// Check the parent
-		!Objects.equals(newTask.getJiraParentIssuenum(), curTask.getJiraParentIssuenum()) ||
-		// Check the duration
-		!Objects.equals(newTask.getDuration(), curTask.getDuration()) ||
-		// Check the percent complete
-		!Objects.equals(newTask.getPercentComplete(), curTask.getPercentComplete()) ||
-		// Check the name
-		!Objects.equals(newTask.getName(), curTask.getName()) ||
-		// Check the description
-		!Objects.equals(newTask.getDescription(), curTask.getDescription())
-		);		
 	}
 }

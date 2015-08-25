@@ -13,6 +13,7 @@ import org.json.JSONObject;
 
 import com.attask.api.StreamClient;
 import com.attask.api.StreamClientException;
+import com.spillman.SyncProperties;
 import com.spillman.common.Account;
 import com.spillman.common.Opportunity;
 import com.spillman.common.Project;
@@ -58,7 +59,7 @@ public class WorkfrontClient {
 		Workfront.STATUS,
 		Workfront.PERCENT_COMPLETE,
 		Workfront.DURATION_MINUTES,
-		Workfront.JIRA_ISSUENUM,
+		Workfront.JIRA_ISSUE_ID,
 		Workfront.PARENT_ID,
 	};
 	
@@ -75,40 +76,47 @@ public class WorkfrontClient {
 	private String newRequestProjectID		= null;
 	private HashMap<String, String> users	= null;
 
-	public WorkfrontClient(String url, String portfolio, String jiraTask, String accountName, String opportunityName, String newRequestProjectID)
-			throws WorkfrontException {
-		logger.entry(url, portfolio, jiraTask, accountName, opportunityName);
+	public WorkfrontClient(SyncProperties props) throws WorkfrontException {
+			
+		logger.entry(props);
 		
+		String url = props.getWorkfrontUrl();
 		if (url == null) {
-			throw new WorkfrontException("url cannot be null");
+			throw new WorkfrontException("Workfront URL cannot be null");
 		}
 		
+		String portfolio = props.getWorkfrontDevPortfolioName();
 		if (portfolio == null) {
-			throw new WorkfrontException("portfolio name cannot be null");
+			throw new WorkfrontException("Workfront Development portfolio name cannot be null");
 		}
 		
+		String jiraTask = props.getWorkfrontJiraTaskTemplateName();
 		if (jiraTask == null) {
-			throw new WorkfrontException("Jira task template name cannot be null");
+			throw new WorkfrontException("Workfront Jira task template name cannot be null");
 		}
 		
+		String accountName = props.getWorkfrontAccountNameParam();
 		if (accountName == null) {
-			throw new WorkfrontException("Account Name parameter cannot be null");
+			throw new WorkfrontException("Workfront Account Name cannot be null");
 		}
 		
+		String opportunityName = props.getWorkfrontOpportunityNameParam();
 		if (opportunityName == null) {
-			throw new WorkfrontException("Opportunity Name parameter cannot be null");
+			throw new WorkfrontException("Workfront Opportunity Name parameter cannot be null");
 		}
 		
+		String newRequestProjectID = props.getWorkfrontNewProjectRequestProejctID();
 		if (newRequestProjectID == null) {
-			throw new WorkfrontException("New Project Request Project ID parameter cannot be null");
+			throw new WorkfrontException("Workfront New Project Request Project ID parameter cannot be null");
 		}
 		
-		client = new StreamClient(url);
-		portfolioName = portfolio;
-		jiraTaskCustomFormName = jiraTask;
-		paramAccountName = accountName;
-		paramOpportunityName = opportunityName;
+		this.client = new StreamClient(url);
+		this.portfolioName = portfolio;
+		this.jiraTaskCustomFormName = jiraTask;
+		this.paramAccountName = accountName;
+		this.paramOpportunityName = opportunityName;
 		this.newRequestProjectID = newRequestProjectID;
+		
 		logger.exit();
 	}
 
@@ -453,11 +461,14 @@ public class WorkfrontClient {
 		logger.entry(project, task);
 		
 		// Copy the Workfront task ID to the new task
-		Task curTask = project.getDevTask(task.getJiraIssuenum());
+		Task curTask = project.getDevTask(task.getJiraIssueID());
 		task.setWorkfrontTaskID(curTask.getWorkfrontTaskID());
 
 		// Before updating the task in Workfront map the fields coming from Jira
-		task = updateTaskWithWorkfrontValues(project, task);
+//		task = updateTaskWithWorkfrontValues(project, task);
+
+		// Set the parent ID to the implementation task
+		task.setWorkfrontParentTaskID(project.getImplementationTaskID());
 		
 		// Update the task in Workfront
 		try {
@@ -475,7 +486,10 @@ public class WorkfrontClient {
 		logger.entry(project, task);
 		
 		// Before adding the task to Workfront map the fields coming from Jira
-		task = updateTaskWithWorkfrontValues(project, task);
+//		task = updateTaskWithWorkfrontValues(project, task);
+
+		// Set the parent ID to the implementation task
+		task.setWorkfrontParentTaskID(project.getImplementationTaskID());
 		
 		// Add the task to Workfront
 		try {
@@ -536,38 +550,40 @@ public class WorkfrontClient {
 		
 		fields.put(Workfront.PROJECT_ID, project.getWorkfrontProjectID());
 		fields.put(Workfront.NAME, task.getName());
-		fields.put(Workfront.JIRA_ISSUENUM, task.getJiraIssuenum());
+		fields.put(Workfront.JIRA_ISSUE_ID, task.getJiraIssueID());
+		fields.put(Workfront.JIRA_ISSUE_TYPE, task.getJiraIssueType());
+		fields.put(Workfront.JIRA_ISSUE_URL, task.getJiraIssueUrl());
 		fields.put(Workfront.CUSTOM_FORM_ID, jiraTaskCustomFormID);
 		
 		return logger.exit(fields);
 	}
 
-	private Task updateTaskWithWorkfrontValues(Project project, Task task) {
-		logger.entry(project, task);
-		
-		// If this is a new task coming from Jira there won't be an assigneeID
-		if (task.getAssigneeID() == null) {
-			if (task.getAssigneeName() != null) { 
-				task.setAssigneeID(users.get(task.getAssigneeName()));
-			}
-			else {
-				logger.warn("Can't set Workfront assigneeID because there is no Jira assigneeName");
-			}
-		}
-		
-		// If this is a new task coming from Jira there won't be a parentTaskID
-		if (task.getWorkfrontParentTaskID() == null) {
-			if (task.getJiraParentIssuenum() != null) {
-				task.setWorkfrontParentTaskID(project.getWorkfrontParentTaskID(task));
-			}
-			else {
-				logger.debug("The Jira task isn't assigned to an Epic. Setting parentTaskID to the implementation task ID.");
-				task.setWorkfrontParentTaskID(project.getImplementationTaskID());
-			}
-		}
-		
-		return logger.exit(task);
-	}
+//	private Task updateTaskWithWorkfrontValues(Project project, Task task) {
+//		logger.entry(project, task);
+//		
+//		// If this is a new task coming from Jira there won't be an assigneeID
+//		if (task.getAssigneeID() == null) {
+//			if (task.getAssigneeName() != null) { 
+//				task.setAssigneeID(users.get(task.getAssigneeName()));
+//			}
+//			else {
+//				logger.warn("Can't set Workfront assigneeID because there is no Jira assigneeName");
+//			}
+//		}
+//		
+//		// If this is a new task coming from Jira there won't be a parentTaskID
+//		if (task.getWorkfrontParentTaskID() == null) {
+//			if (task.getJiraParentIssuenum() != null) {
+//				task.setWorkfrontParentTaskID(project.getWorkfrontParentTaskID(task));
+//			}
+//			else {
+//				logger.debug("The Jira task isn't assigned to an Epic. Setting parentTaskID to the implementation task ID.");
+//				task.setWorkfrontParentTaskID(project.getImplementationTaskID());
+//			}
+//		}
+//		
+//		return logger.exit(task);
+//	}
 	
 	public String getUserID(String name) throws WorkfrontException {
 		logger.entry(name);
@@ -613,7 +629,7 @@ public class WorkfrontClient {
 			try {
 				Task t = new Task((JSONObject)tasks.getJSONObject(i));
 				// For convenience in looking up tasks later hash the task by the Jira issuenum and the Workfront task ID
-				taskList.put(t.getJiraIssuenum(), t);
+				taskList.put(t.getJiraIssueID(), t);
 				taskList.put(t.getWorkfrontTaskID(), t);
 			} catch (JSONException e) {
 				throw new StreamClientException(e);
@@ -643,7 +659,7 @@ public class WorkfrontClient {
 		
 		Map<String, Object> search = new HashMap<String, Object>();
 		search.put(Workfront.PROJECT_ID, projectID);
-		search.put(Workfront.JIRA_ISSUENUM_MOD, Workfront.MOD_NOT_NULL);
+		search.put(Workfront.JIRA_ISSUE_ID_MOD, Workfront.MOD_NOT_NULL);
 		
 		return logger.exit(search);
 	}

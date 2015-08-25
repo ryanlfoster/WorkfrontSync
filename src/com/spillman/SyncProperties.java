@@ -21,11 +21,12 @@ public class SyncProperties extends Properties {
 
 	private static final String PROP_DEFAULT_VERSION			= "DefaultVersion";
 
-	private static final String PROP_JIRA_BROWSE_URL			= "Jira.BrowseURL";
+	private static final String PROP_JIRA_BROWSE_URL			= "Jira.BrowseUrl";
 	private static final String PROP_JIRA_CREATE_PROJECT_URL	= "Jira.CreateProjectUrl";
 	private static final String PROP_JIRA_JDBC_CONNECTION_STRING= "Jira.JDBC_ConnectionString";
 	private static final String PROP_JIRA_PASSWORD				= "Jira.Password";
 	private static final String PROP_JIRA_TASK_TEMPLATE			= "Workfront.JiraTaskTemplate";
+	private static final String PROP_JIRA_URL					= "Jira.Url";
 	private static final String PROP_JIRA_USERNAME				= "Jira.Username";
 
 	private static final String PROP_TIME_TO_SLEEP 				= "TimeToSleep";
@@ -102,7 +103,7 @@ public class SyncProperties extends Properties {
 	}
 	
 	public String getJiraCreateProjectUrl() {
-		return this.getProperty(PROP_JIRA_CREATE_PROJECT_URL);
+		return this.getProperty(PROP_JIRA_URL) + this.getProperty(PROP_JIRA_CREATE_PROJECT_URL);
 	}
 	
 	public String getDefaultVersion() {
@@ -110,7 +111,7 @@ public class SyncProperties extends Properties {
 	}
 	
 	public String getJiraBrowseUrl() {
-		return this.getProperty(PROP_JIRA_BROWSE_URL);
+		return this.getProperty(PROP_JIRA_URL) + this.getProperty(PROP_JIRA_BROWSE_URL);
 	}
 	
 	public String getCRMJDBCConnectionString() {

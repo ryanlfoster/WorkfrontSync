@@ -14,6 +14,7 @@ import com.jira.api.Jira;
 import com.jira.api.JiraRestAPIException;
 import com.jira.api.JiraRestClient;
 import com.jira.api.JiraSQLClient;
+import com.spillman.SyncProperties;
 import com.spillman.common.Project;
 import com.spillman.common.Task;
 import com.spillman.common.WorkLog;
@@ -29,14 +30,19 @@ public class JiraClient {
 	private String jiraBrowseUrl;
 	private HashMap<String,String> programPrefix;
 	
-	public JiraClient(String url, String username, String password, String jdbcConnectionString, String browseUrl,
-			HashMap<String,String> prefixes) throws JiraException {
-		logger.entry(url, username, "password", jdbcConnectionString);
+	public JiraClient(SyncProperties props) throws JiraException {
+		logger.entry(props);
 		
+		String url = props.getJiraCreateProjectUrl();
+		String username = props.getJiraUsername();
+		String password = props.getJiraPassword();
 		this.restClient = new JiraRestClient(url, username, password);
-		sqlClient = new JiraSQLClient(jdbcConnectionString);
-		this.jiraBrowseUrl = browseUrl;
-		this.programPrefix = prefixes;
+
+		String jdbcConnectionString = props.getJiraJDBCConnectionString();
+		this.sqlClient = new JiraSQLClient(jdbcConnectionString);
+
+		this.jiraBrowseUrl = props.getJiraBrowseUrl();
+		this.programPrefix = props.getProgramPrefixMap();
 		
 		logger.exit();
 	}
@@ -69,19 +75,11 @@ public class JiraClient {
 	
 	public ArrayList<Task> getEpics(String projectID) throws JiraException {
 		logger.entry(projectID);
-		
-		ArrayList<Task> tasks;
-		
-		try {
-			logger.debug("Getting epics...");
-			ResultSet rs = sqlClient.getEpics(projectID);
-			tasks = processEpics(rs);
-			logger.debug("Found {} epics", tasks.size());
+		ArrayList<Task> tasks = sqlClient.getEpics(projectID);
+		for (Task t : tasks) {
+			t.setJiraIssueUrl(jiraBrowseUrl + t.getJiraIssueKey());
 		}
-		catch (SQLException e) {
-			throw new JiraException(e);
-		}
-
+		logger.debug("Found {} epics", tasks.size());
 		return logger.exit(tasks);
 	}
 	
@@ -154,47 +152,6 @@ public class JiraClient {
 		}
 		
 		return logger.exit(projectName);
-	}
-
-	private String generateProjectKey(Project project) throws JiraException {
-		logger.entry(project);
-		
-		// Form the project key from the project name.
-		String projectKey = project.getName();
-		
-		// Project keys can only be letters
-		projectKey = projectKey.replaceAll("[^A-Za-z]","");
-		
-		// Project keys must be upper case
-		projectKey = projectKey.toUpperCase();
-		
-		// Resize the project key so there is enough room to add a 2 character suffix
-		projectKey = projectKey.substring(0, Math.min(projectKey.length(), MAX_KEY_LENGTH - 2));
-
-		char suffixChar1 = 'A';
-		char suffixChar2 = 'A';
-
-		// Generate the initial project key and check to see if it exists
-		projectKey = projectKey + suffixChar1 + suffixChar2;
-		
-		logger.debug("Trying project key '{}'...", projectKey);
-		while (sqlClient.projectKeyExists(projectKey)) {
-			// Increment the suffix characters
-			suffixChar2++;
-			if (suffixChar2 > 'Z') {
-				suffixChar2 = 'A';
-				suffixChar1++;
-				if (suffixChar1 > 'Z') {
-					throw new JiraException("Cannot create unique project key for project '" + project.getName() + "'");
-				}
-			}
-			
-			// Generate the new project key
-			projectKey = projectKey.substring(0,projectKey.length() - 2) + suffixChar1 + suffixChar2;
-			logger.debug("Trying project key '{}'...", projectKey);
-		} 
-		
-		return logger.exit(projectKey);
 	}
 	
 	private String generateShortProjectKey(Project project) throws JiraException {
@@ -300,65 +257,5 @@ public class JiraClient {
 		}
 		
 		return logger.exit(worklog);
-	}
-	
-	private ArrayList<Task> processEpics(ResultSet rs) throws SQLException {
-		logger.entry(rs);
-		
-		ArrayList<Task> tasks = new ArrayList<Task>();
-		
-		while (rs.next()) {
-			Task task = new Task();
-
-			task.setName(rs.getString(Jira.EPIC_NAME));
-			task.setJiraIssuenum(Integer.toString(rs.getInt(Jira.EPIC_ISSUENUM)));
-			task.setJiraStatus(rs.getString(Jira.EPIC_STATUS));
-			task.setJiraParentIssuenum(null);
-
-			/*
-			 Algorithm for calculating duration and percent complete:
-			 - Assumption: all the results are epics
-			 - Assumption: values in the result are a summary of all stories and subtasks in the epic
-			 
-			 If the completed story points is zero use the original estimate of the epic as the duration
-			 Otherwise calculate a velocity using time spent on completed stories and story points completed (i.e., time_spent / points_completed)
-			 and apply that velocity to the remaining points to calculate the duration (i.e., velocity * remaining points + time_spent)
-			 
-			 If the status of the epic is "Done", then set the percent complete to 100%
-			 Otherwise, calculate the percent complete as completed_story_points / total_story_points
-			 */
-			Double epicEstimate = rs.getDouble(Jira.EPIC_ESTIMATE);
-			Double totalStoryPoints = rs.getDouble(Jira.TOTAL_STORY_POINTS);
-			Double timeSpentClosedStories = rs.getDouble(Jira.TOTAL_TIME_SPENT_CLOSED);
-			Double storyPointsClosedStories = rs.getDouble(Jira.TOTAL_STORY_POINTS_CLOSED);
-			Double subtasksTimeSpentClosedStories = rs.getDouble(Jira.TOTAL_SUBTASKS_TIME_SPENT_CLOSED);
-			
-			Double duration;
-			Double percentComplete;
-			if (storyPointsClosedStories <= 0) {
-				duration = epicEstimate;
-				percentComplete = 0.0;
-			}
-			else {
-				Double velocity = timeSpentClosedStories / storyPointsClosedStories;
-				duration = velocity * (totalStoryPoints - storyPointsClosedStories) + timeSpentClosedStories + subtasksTimeSpentClosedStories;
-				percentComplete = 100 * storyPointsClosedStories / totalStoryPoints;
-				
-				// Round the duration and percent complete to the nearest whole number
-				duration = (double)Math.round(duration);
-				percentComplete = (double)Math.round(percentComplete);
-			}
-			
-			if (rs.getString(Jira.EPIC_STATUS).equals(Jira.EPIC_STATUS_DONE)) {
-				percentComplete = 100.0;
-			}
-			
-			task.setDuration(duration);
-			task.setPercentComplete(percentComplete);
-			
-			tasks.add(task);
-		}
-		
-		return logger.exit(tasks);
 	}
 }

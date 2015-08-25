@@ -115,3 +115,26 @@ public class JiraRestClient {
 		return conn;
 	}
 }
+
+/*
+ * Sample JSON to create an EPIC using the Jira API
+ *
+{
+  "fields": {
+    "project": {
+      "id": "11660"
+    },
+    "summary": "Test of the API",
+    "issuetype": {
+      "id": "10"
+    },
+    "description": "This is a short description",
+    "customfield_13363":"Epic 1 from API" 
+  }
+}
+
+ *
+ * Sample JSON to create a Backlog using the Jira API
+ * 
+
+ */

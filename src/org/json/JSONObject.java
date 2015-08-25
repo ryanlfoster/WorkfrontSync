@@ -588,6 +588,19 @@ public class JSONObject {
 
 
     /**
+     * Get the string associated with a key. 
+     * Rather than throw an exception, return null if they key is not found.
+     *
+     * @param key   A key string.
+     * @return      A string which is the value or null if the key is not found.
+     */
+    public String getStringOrNull(String key) throws JSONException {
+    	Object o = opt(key);
+        return (o instanceof Null || o == null ? null : o.toString());
+    }
+
+
+    /**
      * Determine if the JSONObject contains a specific key.
      * @param key   A key string.
      * @return      true if the key exists in the JSONObject.

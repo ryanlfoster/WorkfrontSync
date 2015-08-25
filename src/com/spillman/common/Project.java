@@ -117,17 +117,17 @@ public class Project {
 				.append("devTasks", devTasks).toString();
 	}
 
-	public String getWorkfrontParentTaskID(Task task) {
-		// Lookup up the parent task using the parentJiraIssuenum
-		Task t = devTasks.get(task.getJiraParentIssuenum());
-		if (t != null) {
-			return t.getWorkfrontTaskID();
-		}
-		else {
-			return null;
-		}
-	}
-	
+//	public String getWorkfrontParentTaskID(Task task) {
+//		// Lookup up the parent task using the parentJiraIssuenum
+//		Task t = devTasks.get(task.getJiraParentIssuenum());
+//		if (t != null) {
+//			return t.getWorkfrontTaskID();
+//		}
+//		else {
+//			return null;
+//		}
+//	}
+//	
 	public String getWorkfrontProjectID() {
 		return workfrontProjectID;
 	}
@@ -184,8 +184,8 @@ public class Project {
 		if (newTask.getWorkfrontTaskID() != null) {
 			devTasks.put(newTask.getWorkfrontTaskID(), newTask);
 		}
-		if (newTask.getJiraIssuenum() != null) {
-			devTasks.put(newTask.getJiraIssuenum(), newTask);
+		if (newTask.getJiraIssueID() != null) {
+			devTasks.put(newTask.getJiraIssueID(), newTask);
 		}
 	}
 	

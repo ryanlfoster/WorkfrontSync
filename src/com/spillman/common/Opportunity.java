@@ -26,29 +26,13 @@ public class Opportunity {
 	}
 	
 	public Opportunity(JSONObject request) throws JSONException {
-		if (!request.isNull(Workfront.OPPORTUNITY_NAME)) {
-			this.crmOpportunityID = request.getString(Workfront.OPPORTUNITY_NAME);
-		}
-
-		if (!request.isNull(Workfront.OPPORTUNITY_PROBABILITY)) {
-			this.probability = request.getInt(Workfront.OPPORTUNITY_PROBABILITY);
-		}
-
-		if (!request.isNull(Workfront.OPPORTUNITY_FLAG)) {
-			this.flag = request.getString(Workfront.OPPORTUNITY_FLAG);
-		}
-
-		if (!request.isNull(Workfront.OPPORTUNITY_PHASE)) {
-			this.phase = request.getString(Workfront.OPPORTUNITY_PHASE);
-		}
-
-		if (!request.isNull(Workfront.OPPORTUNITY_POSITION)) {
-			this.position = request.getString(Workfront.OPPORTUNITY_POSITION);
-		}
-
-		if (!request.isNull(Workfront.OPPORTUNITY_STATE)) {
-			this.state = request.getInt(Workfront.OPPORTUNITY_STATE);
-		}
+		this.name = request.getStringOrNull(Workfront.OPPORTUNITY_NAME);
+		this.crmOpportunityID = request.getStringOrNull(Workfront.OPPORTUNITY_NAME);
+		this.flag = request.getStringOrNull(Workfront.OPPORTUNITY_FLAG);
+		this.phase = request.getStringOrNull(Workfront.OPPORTUNITY_PHASE);
+		this.position = request.getStringOrNull(Workfront.OPPORTUNITY_POSITION);
+		if (!request.isNull(Workfront.OPPORTUNITY_STATE)) this.state = request.getInt(Workfront.OPPORTUNITY_STATE);
+		if (!request.isNull(Workfront.OPPORTUNITY_PROBABILITY)) this.probability = request.getInt(Workfront.OPPORTUNITY_PROBABILITY);
 	}
 	
 	public String toString() {
