@@ -13,16 +13,15 @@ public class Task {
 	private String workfrontTaskID;
 	private String workfrontParentTaskID;
 	private String jiraIssueID;
-//	private String jiraParentIssuenum;
 	private String jiraIssueType;
 	private String jiraIssueUrl;
 	private String jiraIssueKey;
+	private String jiraEpicName;
+	private String pilotAgency;
 	private String name;
 	private String description;
 	private String assigneeID;
-//	private String assigneeName;
 	private String workfrontStatus;
-//	private String jiraStatus;
 	private Double duration;
 	private Double percentComplete;
 	
@@ -37,6 +36,8 @@ public class Task {
 		jiraIssueID = task.getStringOrNull(Workfront.JIRA_ISSUE_ID);
 		jiraIssueType = task.getStringOrNull(Workfront.JIRA_ISSUE_TYPE);
 		jiraIssueUrl = task.getStringOrNull(Workfront.JIRA_ISSUE_URL);
+		jiraEpicName = task.getStringOrNull(Workfront.JIRA_ISSUE_EPIC_NAME);
+		pilotAgency = task.getStringOrNull(Workfront.PILOT_AGENCY);
 		name = task.getStringOrNull(Workfront.NAME);
 		description = task.getStringOrNull(Workfront.DESCRIPTION);
 		assigneeID = task.getStringOrNull(Workfront.ASSIGNED_TO_ID);
@@ -50,13 +51,10 @@ public class Task {
 			.append("workfrontTaskID", workfrontTaskID)
 			.append("workfrontParentTaskID", workfrontParentTaskID)
 			.append("jiraIssuenum", jiraIssueID)
-//			.append("jiraParentIssuenum", jiraParentIssuenum)
 			.append("name", name)
 			.append("description", description)
 			.append("assigneeID", assigneeID)
-//			.append("assigneeName", assigneeName)
 			.append("workfrontStatus", workfrontStatus)
-//			.append("jiraStatus", jiraStatus)
 			.append("duration", duration)
 			.append("percentComplete", percentComplete)
 			.toString();
@@ -95,14 +93,6 @@ public class Task {
 		this.jiraIssueID = id;
 	}
 
-//	public String getJiraParentIssuenum() {
-//		return jiraParentIssuenum;
-//	}
-//
-//	public void setJiraParentIssuenum(String jiraParentIssuenum) {
-//		this.jiraParentIssuenum = jiraParentIssuenum;
-//	}
-//
 	public String getName() {
 		return name;
 	}
@@ -159,22 +149,6 @@ public class Task {
 		this.percentComplete = percentComplete;
 	}
 
-//	public String getAssigneeName() {
-//		return assigneeName;
-//	}
-//
-//	public void setAssigneeName(String assigneeName) {
-//		this.assigneeName = assigneeName;
-//	}
-//
-//	public String getJiraStatus() {
-//		return jiraStatus;
-//	}
-//
-//	public void setJiraStatus(String jiraStatus) {
-//		this.jiraStatus = jiraStatus;
-//	}
-//
 	public String getJiraIssueType() {
 		return jiraIssueType;
 	}
@@ -197,6 +171,22 @@ public class Task {
 
 	public void setJiraIssueKey(String jiraIssueKey) {
 		this.jiraIssueKey = jiraIssueKey;
+	}
+
+	public String getJiraEpicName() {
+		return jiraEpicName;
+	}
+
+	public void setJiraEpicName(String jiraEpicName) {
+		this.jiraEpicName = jiraEpicName;
+	}
+
+	public String getPilotAgency() {
+		return pilotAgency;
+	}
+
+	public void setPilotAgency(String pilotAgency) {
+		this.pilotAgency = pilotAgency;
 	}
 
 }

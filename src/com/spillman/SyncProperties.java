@@ -23,6 +23,11 @@ public class SyncProperties extends Properties {
 
 	private static final String PROP_JIRA_BROWSE_URL			= "Jira.BrowseUrl";
 	private static final String PROP_JIRA_CREATE_PROJECT_URL	= "Jira.CreateProjectUrl";
+	private static final String PROP_JIRA_CREATE_ISSUE_URL		= "Jira.CreateIssueUrl";
+	private static final String PROP_JIRA_EPIC_ISSUE_TYPE		= "Jira.EpicIssueType";
+	private static final String PROP_JIRA_EPIC_STORY_LINK_NAME	= "Jira.EpicStoryLinkName";
+	private static final String PROP_JIRA_LINK_ISSUE_URL		= "Jira.LinkIssueUrl";
+	private static final String PROP_JIRA_ISSUE_TYPES			= "Jira.IssueTypes";
 	private static final String PROP_JIRA_JDBC_CONNECTION_STRING= "Jira.JDBC_ConnectionString";
 	private static final String PROP_JIRA_PASSWORD				= "Jira.Password";
 	private static final String PROP_JIRA_TASK_TEMPLATE			= "Workfront.JiraTaskTemplate";
@@ -31,11 +36,12 @@ public class SyncProperties extends Properties {
 
 	private static final String PROP_TIME_TO_SLEEP 				= "TimeToSleep";
 	
+	private static final String PROP_NEW_PROJECT_REQUEST_PROJECT_ID		= "Workfront.NewProjectRequestProjectID";
 	private static final String PROP_WORKFRONT_ACCOUNT_NAME_PARAM		= "Workfront.AccountNameParam";
 	private static final String PROP_WORKFRONT_APIKEY					= "Workfront.ApiKey";
 	private static final String PROP_WORKFRONT_DEV_PORTFOLIO			= "Workfront.DevPortfolio";
-	private static final String PROP_NEW_PROJECT_REQUEST_PROJECT_ID		= "Workfront.NewProjectRequestProjectID";
 	private static final String PROP_WORKFRONT_OPPORTUNITY_NAME_PARAM	= "Workfront.OpportunityNameParam";
+	private static final String PROP_WORKFRONT_PILOT_AGENCY_PARAM		= "Workfront.PilotAgencyParam";
 	private static final String PROP_WORKFRONT_PROGRAM_DEV_TEAM 		= "Workfront.ProgramDevTeamMap";
 	private static final String PROP_WORKFRONT_PROGRAM_PREFIXES 		= "Workfront.ProgramPrefixes";
 	private static final String PROP_WORKFRONT_URL						= "Workfront.Url";
@@ -69,6 +75,10 @@ public class SyncProperties extends Properties {
 		return this.getProperty(PROP_WORKFRONT_OPPORTUNITY_NAME_PARAM); 
 	}
 
+	public String getWorkfrontPilotAgencyParam() {
+		return this.getProperty(PROP_WORKFRONT_PILOT_AGENCY_PARAM); 
+	}
+
 	public String getWorkfrontApiKey() {
 		return this.getProperty(PROP_WORKFRONT_APIKEY); 
 	}
@@ -88,7 +98,15 @@ public class SyncProperties extends Properties {
 	public String getWorkfrontJiraTaskTemplateName() {
 		return this.getProperty(PROP_JIRA_TASK_TEMPLATE);
 	}
+	
+	public String getJiraEpicStoryLinkName() {
+		return this.getProperty(PROP_JIRA_EPIC_STORY_LINK_NAME);
+	}
 
+	public String getJiraEpicIssueType() {
+		return this.getProperty(PROP_JIRA_EPIC_ISSUE_TYPE);
+	}
+	
 	public String getJiraUsername() {
 		return this.getProperty(PROP_JIRA_USERNAME);
 	}
@@ -104,6 +122,14 @@ public class SyncProperties extends Properties {
 	
 	public String getJiraCreateProjectUrl() {
 		return this.getProperty(PROP_JIRA_URL) + this.getProperty(PROP_JIRA_CREATE_PROJECT_URL);
+	}
+	
+	public String getJiraCreateIssueUrl() {
+		return this.getProperty(PROP_JIRA_URL) + this.getProperty(PROP_JIRA_CREATE_ISSUE_URL);
+	}
+	
+	public String getJiraLinkIssueUrl() {
+		return this.getProperty(PROP_JIRA_URL) + this.getProperty(PROP_JIRA_LINK_ISSUE_URL);
 	}
 	
 	public String getDefaultVersion() {
@@ -137,6 +163,10 @@ public class SyncProperties extends Properties {
 		else {
 			return program;
 		}
+	}
+	
+	public HashMap<String,String> getJiraIssueTypes() {
+		return parseMappings(PROP_JIRA_ISSUE_TYPES);
 	}
 
 	private HashMap<String, String> parseMappings(String property) {

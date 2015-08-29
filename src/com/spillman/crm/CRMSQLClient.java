@@ -89,7 +89,7 @@ public class CRMSQLClient {
 			accountNamesStatement.setTimestamp(1, createdSince, gmtcal);
 			ResultSet rs = accountNamesStatement.executeQuery();
 			while (rs.next()) {
-				codes.add(new Account(rs.getString(CRM.UNIQUE_ACCOUNT_NAME), rs.getString(CRM.ACCOUNT_GUID)));
+				codes.add(new Account(rs.getString(CRM.UNIQUE_ACCOUNT_NAME), rs.getString(CRM.ACCOUNT_GUID), rs.getString(CRM.CUSTOMER_CODE)));
 			}
 			rs.close();
 			

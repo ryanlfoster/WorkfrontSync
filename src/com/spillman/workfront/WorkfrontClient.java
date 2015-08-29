@@ -60,7 +60,11 @@ public class WorkfrontClient {
 		Workfront.PERCENT_COMPLETE,
 		Workfront.DURATION_MINUTES,
 		Workfront.JIRA_ISSUE_ID,
-		Workfront.PARENT_ID,
+		Workfront.JIRA_ISSUE_EPIC_NAME,
+		Workfront.JIRA_ISSUE_TYPE,
+		Workfront.JIRA_ISSUE_URL,
+		Workfront.PILOT_AGENCY,
+		Workfront.PARENT_ID
 	};
 	
 	private StreamClient client = null;
@@ -73,6 +77,8 @@ public class WorkfrontClient {
 	private String accountNameFieldID		= null;
 	private String paramOpportunityName		= null;
 	private String opportunityNameFieldID	= null;
+	private String paramPilotAgency			= null;
+	private String pilotAgencyFieldID		= null;
 	private String newRequestProjectID		= null;
 	private HashMap<String, String> users	= null;
 
@@ -105,6 +111,11 @@ public class WorkfrontClient {
 			throw new WorkfrontException("Workfront Opportunity Name parameter cannot be null");
 		}
 		
+		String pilotAgency = props.getWorkfrontPilotAgencyParam();
+		if (pilotAgency == null) {
+			throw new WorkfrontException("Workfront Pilot Agency parameter cannot be null");
+		}
+		
 		String newRequestProjectID = props.getWorkfrontNewProjectRequestProejctID();
 		if (newRequestProjectID == null) {
 			throw new WorkfrontException("Workfront New Project Request Project ID parameter cannot be null");
@@ -116,6 +127,7 @@ public class WorkfrontClient {
 		this.paramAccountName = accountName;
 		this.paramOpportunityName = opportunityName;
 		this.newRequestProjectID = newRequestProjectID;
+		this.paramPilotAgency = pilotAgency;
 		
 		logger.exit();
 	}
@@ -136,6 +148,7 @@ public class WorkfrontClient {
 			users = getWorkfrontUsers();
 			accountNameFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, paramAccountName);
 			opportunityNameFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, paramOpportunityName);
+			pilotAgencyFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, paramPilotAgency);
 		} catch (JSONException e) {
 			throw new WorkfrontException(e);
 		} catch (StreamClientException e) {
@@ -162,6 +175,17 @@ public class WorkfrontClient {
 		logger.exit();
 	}
 
+	public void addPilotAgencies(List<Account> accounts) throws WorkfrontException {
+		logger.entry(accounts);
+		
+		for (Account account : accounts) {
+			addParameterOption(pilotAgencyFieldID, account.agencyCode, account.agencyCode);
+			logger.trace("Added pilot agency {}.", account.agencyCode);
+		}
+
+		logger.exit();
+	}
+
 	public void addOpportunities(List<Opportunity> opportunities) throws WorkfrontException {
 		logger.entry(opportunities);
 		
@@ -175,7 +199,7 @@ public class WorkfrontClient {
 	
 	private void addParameterOption(String id, String value, String label) throws WorkfrontException {
 		Map<String, Object> map = new HashMap<String, Object>();
-		map.put(Workfront.PARAMETER_ID, opportunityNameFieldID);
+		map.put(Workfront.PARAMETER_ID, id);
 		map.put(Workfront.VALUE, value);
 		map.put(Workfront.LABEL, label);
 		
@@ -257,7 +281,28 @@ public class WorkfrontClient {
 		logger.entry(project, worklog);
 		
 		Map<String, Object> fields = new HashMap<String, Object>();
-		fields.put(Workfront.TASK_ID, project.getDevTask(worklog.getEpicIssuenum()).getWorkfrontTaskID());
+		
+		// Get the Workfront task for the Jira epic
+		Task t = project.getDevTask(worklog.getEpicIssuenum());
+
+		if (t == null) {
+			// If we couldn't find a Workfront task for the epic
+			// Look for a Workfront task for the Jira issue
+			t = project.getDevTask(worklog.getJiraIssuenum());
+		}
+		
+		String wfTaskID;
+		if (t == null) {
+			// If we couldn't find a Workfront task for the Jira issue
+			// Then log the hours against the Workfront implementation task
+			wfTaskID = project.getImplementationTaskID();
+		} else {
+			// We found an existing Workfront task for the Jira epic or Jira issue
+			// so log the hours against this Workfront task
+			wfTaskID = t.getWorkfrontTaskID();
+		}
+		
+		fields.put(Workfront.TASK_ID, wfTaskID);
 		fields.put(Workfront.HOURS, worklog.getHoursWorked());
 		fields.put(Workfront.OWNER_ID, users.get(worklog.getJiraWorker()));
 		fields.put(Workfront.ENTRY_DATE, Workfront.dateFormatter.format(worklog.getDateWorked()));
@@ -432,20 +477,24 @@ public class WorkfrontClient {
 					syncWithJira = project.getString(Workfront.SYNC_WITH_JIRA).equals("Yes");
 				}
 				
-				// If the project is Current and the syncWithJira flag is set and it isn't
-				// already in the list of projects, add it
-				if (!activeProjects.containsKey(projectID) && status.equals(Workfront.STATUS_CURRENT) && syncWithJira) {
+				// If the syncWithJira flag is set and it isn't already in the list of projects, add it
+				if (!activeProjects.containsKey(projectID) && syncWithJira) {
 					Project p = new Project(project);
 					p.setImplementationTaskID(getImplementationTaskID(p.getWorkfrontProjectID()));
 					p.setDevTasks(getDevTasks(p));
 					activeProjects.put(p.getWorkfrontProjectID(), p);
 					logger.debug("Added project {} ({}) to the list of projects to sync", name, projectID);
 				}
-				// If the project is in the list but the status isn't Current or
-				// the syncWithJira flag isn't set, remove it
-				else if(activeProjects.containsKey(projectID) && (!status.equals(Workfront.STATUS_CURRENT) || !syncWithJira)) {
+				// If the project is in the list but the status is Closed or the syncWithJira flag isn't set, remove it
+				else if(activeProjects.containsKey(projectID) && (status.equals(Workfront.STATUS_CLOSED) || !syncWithJira)) {
 					activeProjects.remove(projectID);
 					logger.debug("Removed project {} ({}) from the list of projects to sync", name, projectID);
+				}
+				// Otherwise, the project is in the list and should be synced with Jira
+				else {
+					// Update the list of tasks in the project
+					Project p = new Project(project);
+					activeProjects.get(projectID).setDevTasks(getDevTasks(p));
 				}
 			} catch (JSONException e) {
 				throw new WorkfrontException(e);
@@ -457,37 +506,35 @@ public class WorkfrontClient {
 		return logger.exit(activeProjects);
 	}
 
-	public Task updateTask(Project project, Task task) throws WorkfrontException {
-		logger.entry(project, task);
+	public Task updateTask(Project project, Task updatedTask) throws WorkfrontException {
+		logger.entry(project, updatedTask);
 		
-		// Copy the Workfront task ID to the new task
-		Task curTask = project.getDevTask(task.getJiraIssueID());
-		task.setWorkfrontTaskID(curTask.getWorkfrontTaskID());
-
-		// Before updating the task in Workfront map the fields coming from Jira
-//		task = updateTaskWithWorkfrontValues(project, task);
-
-		// Set the parent ID to the implementation task
-		task.setWorkfrontParentTaskID(project.getImplementationTaskID());
+//		// Copy the Workfront task ID to the updated task
+//		Task curTask = project.getDevTask(updatedTask.getJiraIssueID());
+//		if (curTask == null) {
+//			logger.error("Could not find task {} in development task list in project {}", updatedTask, project);
+//			return updatedTask;
+//		}
+//		updatedTask.setWorkfrontTaskID(curTask.getWorkfrontTaskID());
+//
+//		// Set the parent ID to the implementation task
+//		updatedTask.setWorkfrontParentTaskID(project.getImplementationTaskID());
 		
 		// Update the task in Workfront
 		try {
-			Map<String, Object> fields = formatTaskFields(project, task);
+			Map<String, Object> fields = formatTaskFields(project, updatedTask);
 			logger.debug("Updating Workfront task: {}", fields.toString());
-			client.put(Workfront.OBJCODE_TASK, task.getWorkfrontTaskID(), fields);
+			client.put(Workfront.OBJCODE_TASK, updatedTask.getWorkfrontTaskID(), fields);
 		} catch (StreamClientException e) {
 			throw new WorkfrontException(e);
 		}
 		
-		return logger.exit(task);
+		return logger.exit(updatedTask);
 	}
 
-	public Task addTaskToProject(Project project, Task task) throws WorkfrontException {
+	public Task addImplementationSubtask(Project project, Task task) throws WorkfrontException {
 		logger.entry(project, task);
 		
-		// Before adding the task to Workfront map the fields coming from Jira
-//		task = updateTaskWithWorkfrontValues(project, task);
-
 		// Set the parent ID to the implementation task
 		task.setWorkfrontParentTaskID(project.getImplementationTaskID());
 		
@@ -558,33 +605,6 @@ public class WorkfrontClient {
 		return logger.exit(fields);
 	}
 
-//	private Task updateTaskWithWorkfrontValues(Project project, Task task) {
-//		logger.entry(project, task);
-//		
-//		// If this is a new task coming from Jira there won't be an assigneeID
-//		if (task.getAssigneeID() == null) {
-//			if (task.getAssigneeName() != null) { 
-//				task.setAssigneeID(users.get(task.getAssigneeName()));
-//			}
-//			else {
-//				logger.warn("Can't set Workfront assigneeID because there is no Jira assigneeName");
-//			}
-//		}
-//		
-//		// If this is a new task coming from Jira there won't be a parentTaskID
-//		if (task.getWorkfrontParentTaskID() == null) {
-//			if (task.getJiraParentIssuenum() != null) {
-//				task.setWorkfrontParentTaskID(project.getWorkfrontParentTaskID(task));
-//			}
-//			else {
-//				logger.debug("The Jira task isn't assigned to an Epic. Setting parentTaskID to the implementation task ID.");
-//				task.setWorkfrontParentTaskID(project.getImplementationTaskID());
-//			}
-//		}
-//		
-//		return logger.exit(task);
-//	}
-	
 	public String getUserID(String name) throws WorkfrontException {
 		logger.entry(name);
 		
@@ -657,9 +677,11 @@ public class WorkfrontClient {
 	private Map<String, Object> formatDevTasksSearchParameters(String projectID) {
 		logger.entry(projectID);
 		
+		//TODO: Update the search params to find all issues where the Sync With Jira
+		//      custom field is not null.
 		Map<String, Object> search = new HashMap<String, Object>();
 		search.put(Workfront.PROJECT_ID, projectID);
-		search.put(Workfront.JIRA_ISSUE_ID_MOD, Workfront.MOD_NOT_NULL);
+		search.put(Workfront.JIRA_SYNC_TASK_MOD, Workfront.MOD_NOT_NULL);
 		
 		return logger.exit(search);
 	}
@@ -704,7 +726,8 @@ public class WorkfrontClient {
 		// that are marked to be synced with Jira
 		if (lastUpdateStart == null || lastUpdateEnd == null) {
 			// Active dev projects are those projects that have a Current status...
-			search.put(Workfront.STATUS, Workfront.STATUS_CURRENT);
+			// TODO: sync with any status
+//			search.put(Workfront.STATUS, Workfront.STATUS_CURRENT);
 			// and have the custom field "Sync With Jira" set to "Yes".
 			search.put(Workfront.SYNC_WITH_JIRA, Workfront.YES);
 		}

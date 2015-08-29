@@ -17,7 +17,7 @@ import org.apache.logging.log4j.Logger;
 public class LastSyncProperty extends Properties {
 	private static final Logger logger = LogManager.getLogger();
 
-	private static final String DEFAULT_LAST_SYNC_DATE	= "2015-01-01 00:00:00";
+	private static final String DEFAULT_LAST_SYNC_DATE	= "2005-01-01 00:00:00";
 	private static final String PROP_LAST_SYNC_DATE 	= "LastSyncDate";
 	private static final String PROPERTIES_FILE_NAME 	= "sync.last";
 	private static final String DATE_FORMAT 			= "yyyy-MM-dd HH:mm:ss";

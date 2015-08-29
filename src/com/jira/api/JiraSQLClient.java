@@ -2,10 +2,12 @@ package com.jira.api;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.spillman.common.Account;
 import com.spillman.common.Task;
 import com.spillman.jira.JiraException;
 
@@ -37,6 +39,18 @@ public class JiraSQLClient {
 			"SELECT [pname] "
 			+ "FROM [jira].[project] "
 			+ "WHERE pname = ?";
+	
+	private final static String EPIC_ID_SQL =
+			"SELECT jira.jiraissue.ID, jira.project.pkey + '-' + CONVERT (varchar, jira.jiraissue.issuenum) as pkey "
+			+ "FROM     jira.jiraissue INNER JOIN "
+			+ "                  jira.project ON jira.jiraissue.PROJECT = jira.project.ID "
+			+ "WHERE jira.jiraissue.issuetype = 10 AND jira.jiraissue.SUMMARY LIKE ? AND jira.jiraissue.PROJECT = ?";
+	
+	private final static String PILOT_AGENCIES_SQL = 
+			"SELECT [ID], [customvalue] AS AgencyCode, [disabled] "
+			+ "		  FROM [jira].[customfieldoption] "
+			+ "		  WHERE [CUSTOMFIELD] = 10290  "
+			+ "		  ORDER BY [SEQUENCE]";
 
 	private Connection con = null;
 	private PreparedStatement backlogItemsStatement = null;
@@ -45,6 +59,8 @@ public class JiraSQLClient {
 	private PreparedStatement validProjectNameStatement = null;
 	private PreparedStatement workLogStatement = null;
 	private PreparedStatement workLogNoStartDateStatement = null;
+	private PreparedStatement epicIdStatement = null;
+	private Statement pilotAgencyStatement = null;
 
 	
 	public JiraSQLClient(String connectionString) throws JiraException {
@@ -61,6 +77,49 @@ public class JiraSQLClient {
 		}
 		
 		logger.exit();
+	}
+	
+	
+	public List<Account> getPilotAgencies() throws JiraException {
+		if (pilotAgencyStatement == null) {
+			try { pilotAgencyStatement = con.createStatement(); } 
+			catch (SQLException e) { throw new JiraException(e); }
+		}
+
+		List<Account> accounts = new ArrayList<Account>();
+		
+		// Provide values to the prepared statement
+		try {
+			ResultSet rs = pilotAgencyStatement.executeQuery(PILOT_AGENCIES_SQL);
+			while (rs.next()) {
+				accounts.add(new Account(null, null, rs.getString(Jira.AGENCY_CODE)));
+			}
+			return accounts;
+		} catch (SQLException e) {
+			throw new JiraException(e);
+		}
+	}
+	
+	
+	public String getEpicKey(String name, String projectID) throws JiraException {
+		if (epicIdStatement == null) {
+			try { epicIdStatement = con.prepareStatement(EPIC_ID_SQL); } 
+			catch (SQLException e) { throw new JiraException(e); }
+		}
+
+		// Provide values to the prepared statement
+		try {
+			epicIdStatement.setString(1, name);
+			epicIdStatement.setInt(2, Integer.parseInt(projectID));
+			ResultSet rs = epicIdStatement.executeQuery();
+			if (rs.next()) {
+				return rs.getString(Jira.PKEY);
+			} else {
+				return null;
+			}
+		} catch (SQLException e) {
+			throw new JiraException(e);
+		}
 	}
 	
 	

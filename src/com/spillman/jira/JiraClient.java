@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -15,6 +16,7 @@ import com.jira.api.JiraRestAPIException;
 import com.jira.api.JiraRestClient;
 import com.jira.api.JiraSQLClient;
 import com.spillman.SyncProperties;
+import com.spillman.common.Account;
 import com.spillman.common.Project;
 import com.spillman.common.Task;
 import com.spillman.common.WorkLog;
@@ -33,10 +35,7 @@ public class JiraClient {
 	public JiraClient(SyncProperties props) throws JiraException {
 		logger.entry(props);
 		
-		String url = props.getJiraCreateProjectUrl();
-		String username = props.getJiraUsername();
-		String password = props.getJiraPassword();
-		this.restClient = new JiraRestClient(url, username, password);
+		this.restClient = new JiraRestClient(props);
 
 		String jdbcConnectionString = props.getJiraJDBCConnectionString();
 		this.sqlClient = new JiraSQLClient(jdbcConnectionString);
@@ -46,7 +45,48 @@ public class JiraClient {
 		
 		logger.exit();
 	}
+	
+	public List<Account> getPilotAgencies() throws JiraException {
+		return sqlClient.getPilotAgencies();
+	}
+	
+	public Task createIssue(Project project, Task task) throws JiraException {
+		// Create the Jira issue
+		try {
+			task = restClient.createIssue(project.getJiraProjectID(), task); 
+		} catch (JiraRestAPIException e) {
+			throw new JiraException(e);
+		}
+		
+		// If an epic name was specified in Workfront, then link the new issue
+		// to the specified epic.
+		if (task.getJiraEpicName() != null && !task.getJiraEpicName().isEmpty() 
+			&& task.getJiraIssueKey() != null && !task.getJiraIssueKey().isEmpty()) {
+			
+			// Search Jira for an epic with the specified name
+			String epicKey = sqlClient.getEpicKey(task.getJiraEpicName(), project.getJiraProjectID());
+			
+			// If it's not there, add the epic
+			try {
+				if (epicKey == null) {
+					Task t = restClient.createEpic(project.getJiraProjectID(), task.getJiraEpicName());
+					epicKey = t.getJiraIssueKey();
+				}
+				
+				// Link the new issue to the epic
+				restClient.linkIssueToEpic(task.getJiraIssueKey(), epicKey);
+			} catch (JiraRestAPIException e) {
+				throw new JiraException(e);
+			}
+		}
+		
+		return task;
+	}
 
+	public Task getIssue(String issueID) {
+		return null;
+	}
+	
 	public ArrayList<WorkLog> getWorkLogEntries(Project project, Date startTime, Date endTime) throws JiraException {
 		logger.entry(project, startTime, endTime);
 		

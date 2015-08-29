@@ -32,6 +32,7 @@ public class Workfront {
 	public static final String JIRA_ISSUE_ID			= "DE:Jira Issue ID";
 	public static final String JIRA_ISSUE_TYPE			= "DE:Jira Issue Type";
 	public static final String JIRA_ISSUE_URL			= "DE:Jira Issue URL";
+	public static final String JIRA_ISSUENUM			= "DE:Jira Issue Number";
 	public static final String JIRA_PROJECT_ID			= "DE:Jira Project ID";
 	public static final String JIRA_PROJECT_KEY			= "DE:Jira Project Key";
 	public static final String LABEL					= "label";
@@ -51,6 +52,7 @@ public class Workfront {
 	public static final String PARAMETER_ID				= "parameterID";
 	public static final String PARENT_ID				= "parentID";
 	public static final String PERCENT_COMPLETE			= "percentComplete";
+	public static final String PILOT_AGENCY				= "DE:Pilot Agency";
 	public static final String PORTFOLIO_ID				= "portfolioID";
 	public static final String PROGRAM					= "program";
 	public static final String PROGRAM_NAME				= "program:name";
@@ -68,6 +70,7 @@ public class Workfront {
 	// Workfront Modifiers
 	public static final String JIRA_ISSUENUM_MOD		= "DE:Jira Issue Number_Mod";
 	public static final String JIRA_ISSUE_ID_MOD		= "DE:Jira Issue ID_Mod";
+	public static final String JIRA_SYNC_TASK_MOD		= "DE:Sync Task To Jira_Mod";
 	public static final String LAST_UPDATE_DATE_MOD		= "lastUpdateDate_Mod";
 	public static final String LAST_UPDATE_DATE_RANGE	= "lastUpdateDate_Range";
 	public static final String MOD_BETWEEN				= "between";
