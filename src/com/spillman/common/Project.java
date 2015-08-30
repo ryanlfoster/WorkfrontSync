@@ -32,7 +32,8 @@ public class Project {
 	private List<String> versions;
 	private boolean syncWithJira;
 	private Date lastJiraSync;
-	private HashMap<String, Task> devTasks;
+	private HashMap<String,Task> wfDevTasks; // Hashed by the Workfront ID
+	private HashMap<String,Task> jiraDevTasks; // Hash by the Jira ID
 	
 	public Project() {	
 	}
@@ -43,7 +44,8 @@ public class Project {
 		setStatus(project.getString(Workfront.STATUS));
 		setOwner(project.getJSONObject(Workfront.OWNER).getString(Workfront.NAME));
 		setImplementationTaskID(null);
-		setDevTasks(null);
+		this.wfDevTasks = new HashMap<String,Task>();
+		this.jiraDevTasks = new HashMap<String,Task>();
 
 		if (project.isNull(Workfront.JIRA_PROJECT_ID)) {
 			setJiraProjectID(null);
@@ -114,7 +116,7 @@ public class Project {
 				.append("versions", versions)
 				.append("syncWithJira", syncWithJira)
 				.append("lastJiraSync", lastJiraSync)
-				.append("devTasks", devTasks).toString();
+				.append("devTasks", wfDevTasks).toString();
 	}
 
 //	public String getWorkfrontParentTaskID(Task task) {
@@ -172,29 +174,33 @@ public class Project {
 		this.implementationTaskID = implementationTaskID;
 	}
 
-	public HashMap<String, Task> getDevTasks() {
-		return devTasks;
-	}
-
-	public void setDevTasks(HashMap<String, Task> devTasks) {
-		this.devTasks = devTasks;
+	public HashMap<String, Task> getWorkfrontDevTasks() {
+		return wfDevTasks;
 	}
 
 	public void addDevTask(Task newTask) {
 		if (newTask.getWorkfrontTaskID() != null) {
-			devTasks.put(newTask.getWorkfrontTaskID(), newTask);
+			wfDevTasks.put(newTask.getWorkfrontTaskID(), newTask);
 		}
 		if (newTask.getJiraIssueID() != null) {
-			devTasks.put(newTask.getJiraIssueID(), newTask);
+			jiraDevTasks.put(newTask.getJiraIssueID(), newTask);
 		}
 	}
 	
-	public Task getDevTask(String key) {
-		return devTasks.get(key);
+	public Task getDevTaskByWorkfrontID(String key) {
+		return wfDevTasks.get(key);
 	}
 	
-	public boolean hasTask(String key) {
-		return devTasks.containsKey(key);
+	public Task getDevTaskByJiraID(String key) {
+		return wfDevTasks.get(key);
+	}
+
+	public boolean hasWorkfrontTask(String key) {
+		return wfDevTasks.containsKey(key);
+	}
+	
+	public boolean hasJiraTask(String key) {
+		return jiraDevTasks.containsKey(key);
 	}
 	
 	public String getDescription() {

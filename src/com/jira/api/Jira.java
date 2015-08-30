@@ -14,6 +14,7 @@ public class Jira {
 	public static final String EPIC_STATUS						= "Epic_Status";
 	public static final String HOURS_WORKED						= "HoursWorked";
 	public static final String ISSUE_KEY						= "IssueKey";
+	public static final String ISSUE_STATUS						= "IssueStatus";
 	public static final String ISSUE_TYPE						= "IssueType";	
 	public static final String ISSUENUM							= "Issuenum";
 	public static final String ORIGINAL_ESTIMATE				= "OriginalEstimate";
@@ -54,6 +55,7 @@ public class Jira {
 	
 	//Other fields
 	public static final String EPIC_STATUS_DONE					= "Done";
+	public static final String ISSUE_STATUS_CLOSED				= "Closed";
 	
 	//REST API Fields
 	public static final String DEVELOPMENT_TEAM					= "developmentTeam";

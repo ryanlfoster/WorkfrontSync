@@ -24,6 +24,7 @@ public class Task {
 	private String workfrontStatus;
 	private Double duration;
 	private Double percentComplete;
+	private boolean syncWithJira = true;
 	
 	public Task() {		
 	}
@@ -44,6 +45,11 @@ public class Task {
 		workfrontStatus = task.getStringOrNull(Workfront.STATUS);
 		duration = (double)task.getLong(Workfront.DURATION_MINUTES) / 60.0;
 		percentComplete = task.getDouble(Workfront.PERCENT_COMPLETE);
+		
+		if (task.has(Workfront.JIRA_SYNC_TASK)) {
+			String value = task.getString(Workfront.JIRA_SYNC_TASK);
+			setSyncWithJira((value != null && value.equals(Workfront.YES)));
+		}
 	}
 	
 	public String toString() {
@@ -62,18 +68,13 @@ public class Task {
 	
 	public boolean equals(Task task) {
 		return (
-		// Check the assignee
-//		!Objects.equals(this.getAssigneeName(), task.getAssigneeName()) ||
-		// Check the parent
-//		!Objects.equals(this.getJiraParentIssuenum(), task.getJiraParentIssuenum()) ||
-		// Check the duration
-		!Objects.equals(this.getDuration(), task.getDuration()) ||
+		Objects.equals(this.getDuration(), task.getDuration()) &&
 		// Check the percent complete
-		!Objects.equals(this.getPercentComplete(), task.getPercentComplete()) ||
+		Objects.equals(this.getPercentComplete(), task.getPercentComplete()) &&
 		// Check the name
-		!Objects.equals(this.getName(), task.getName()) ||
+		Objects.equals(this.getName(), task.getName()) &&
 		// Check the description
-		!Objects.equals(this.getDescription(), task.getDescription())
+		Objects.equals(this.getDescription(), task.getDescription())
 		);				
 	}
 	
@@ -187,6 +188,14 @@ public class Task {
 
 	public void setPilotAgency(String pilotAgency) {
 		this.pilotAgency = pilotAgency;
+	}
+
+	public boolean isSyncWithJira() {
+		return syncWithJira;
+	}
+
+	public void setSyncWithJira(boolean syncWithJira) {
+		this.syncWithJira = syncWithJira;
 	}
 
 }

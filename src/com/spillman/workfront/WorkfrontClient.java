@@ -64,6 +64,7 @@ public class WorkfrontClient {
 		Workfront.JIRA_ISSUE_TYPE,
 		Workfront.JIRA_ISSUE_URL,
 		Workfront.PILOT_AGENCY,
+		Workfront.JIRA_SYNC_TASK,
 		Workfront.PARENT_ID
 	};
 	
@@ -283,12 +284,12 @@ public class WorkfrontClient {
 		Map<String, Object> fields = new HashMap<String, Object>();
 		
 		// Get the Workfront task for the Jira epic
-		Task t = project.getDevTask(worklog.getEpicIssuenum());
+		Task t = project.getDevTaskByJiraID(worklog.getEpicIssuenum());
 
 		if (t == null) {
 			// If we couldn't find a Workfront task for the epic
 			// Look for a Workfront task for the Jira issue
-			t = project.getDevTask(worklog.getJiraIssuenum());
+			t = project.getDevTaskByJiraID(worklog.getJiraIssuenum());
 		}
 		
 		String wfTaskID;
@@ -481,7 +482,7 @@ public class WorkfrontClient {
 				if (!activeProjects.containsKey(projectID) && syncWithJira) {
 					Project p = new Project(project);
 					p.setImplementationTaskID(getImplementationTaskID(p.getWorkfrontProjectID()));
-					p.setDevTasks(getDevTasks(p));
+					addDevTasks(p);
 					activeProjects.put(p.getWorkfrontProjectID(), p);
 					logger.debug("Added project {} ({}) to the list of projects to sync", name, projectID);
 				}
@@ -493,8 +494,7 @@ public class WorkfrontClient {
 				// Otherwise, the project is in the list and should be synced with Jira
 				else {
 					// Update the list of tasks in the project
-					Project p = new Project(project);
-					activeProjects.get(projectID).setDevTasks(getDevTasks(p));
+					addDevTasks(activeProjects.get(projectID));
 				}
 			} catch (JSONException e) {
 				throw new WorkfrontException(e);
@@ -638,25 +638,21 @@ public class WorkfrontClient {
 		return logger.exit(users);
 	}
 
-	private HashMap<String, Task> getDevTasks(Project project) throws StreamClientException {
+	private void addDevTasks(Project project) throws StreamClientException {
 		logger.entry(project);
 		
 		Map<String, Object> searchParams = formatDevTasksSearchParameters(project.getWorkfrontProjectID());
 		JSONArray tasks = client.search(Workfront.OBJCODE_TASK, searchParams, TASK_FIELDS);
 
-		HashMap<String, Task> taskList = new HashMap<String, Task>();
 		for (int i = 0; i < tasks.length(); i++) {
 			try {
-				Task t = new Task((JSONObject)tasks.getJSONObject(i));
-				// For convenience in looking up tasks later hash the task by the Jira issuenum and the Workfront task ID
-				taskList.put(t.getJiraIssueID(), t);
-				taskList.put(t.getWorkfrontTaskID(), t);
+				project.addDevTask(new Task((JSONObject)tasks.getJSONObject(i)));
 			} catch (JSONException e) {
 				throw new StreamClientException(e);
 			}
 		}
 		
-		return logger.exit(taskList);
+		logger.exit();
 	}
 
 	private String getImplementationTaskID(String projectID) throws JSONException, StreamClientException {

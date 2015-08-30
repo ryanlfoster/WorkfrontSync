@@ -35,6 +35,7 @@ public class Workfront {
 	public static final String JIRA_ISSUENUM			= "DE:Jira Issue Number";
 	public static final String JIRA_PROJECT_ID			= "DE:Jira Project ID";
 	public static final String JIRA_PROJECT_KEY			= "DE:Jira Project Key";
+	public static final String JIRA_SYNC_TASK			= "DE:Sync Task To Jira";
 	public static final String LABEL					= "label";
 	public static final String LAST_JIRA_SYNC			= "DE:Last Jira Sync";
 	public static final String LAST_UPDATE_DATE			= "lastUpdateDate";

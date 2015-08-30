@@ -5,12 +5,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 
 import javax.swing.event.ListSelectionEvent;
 
 import com.attask.api.StreamClientException;
 import com.jira.api.Jira;
+import com.spillman.common.Account;
 import com.spillman.common.Opportunity;
 import com.spillman.common.Project;
 import com.spillman.common.Request;
@@ -37,6 +41,7 @@ public class ProjectSynchronizer {
 	private static CRMClient crmClient = null;
 	private static HashMap<String, Project> activeProjects = null;
 	private static HashMap<String, Request> activeRequests = null;
+	private static HashMap<String,String> wfPilotAgencies = null;
 	
 	public static void main(String[] args) {
 		logger.info("Starting Project Synchronizer");
@@ -113,9 +118,9 @@ public class ProjectSynchronizer {
 
 			currentTimestamp = new Date();
 			
-			synchronizeCustomFields(lastSyncTimestamp, currentTimestamp);
+//			synchronizeCustomFields(lastSyncTimestamp, currentTimestamp);
 			synchronizeProjects(lastSyncTimestamp, currentTimestamp);
-			syncrhonizeRequests(lastSyncTimestamp, currentTimestamp);
+//			syncrhonizeRequests(lastSyncTimestamp, currentTimestamp);
 			
 			lastSyncTimestamp = currentTimestamp;
 			lastSync.setLastSyncDate(lastSyncTimestamp);
@@ -143,7 +148,7 @@ public class ProjectSynchronizer {
 			workfrontClient.removeOpportunities(crmClient.getClosedOpportunities(lastSyncTimestamp));
 			workfrontClient.addOpportunities(crmClient.getNewOpportunities(lastSyncTimestamp));
 			workfrontClient.addAccounts(crmClient.getNewAccounts(lastSyncTimestamp));
-			workfrontClient.addPilotAgencies(jiraClient.getPilotAgencies());
+			syncPilotAgencies();
 		} catch (WorkfrontException | CRMException | JiraException e) {
 			logger.fatal("Experienced an error", e);
 			System.exit(-1);
@@ -151,7 +156,24 @@ public class ProjectSynchronizer {
 		
 	}
 
-
+	private static void syncPilotAgencies() throws JiraException, WorkfrontException {
+		// Initialize the in memory copy of the list of pilot agencies
+		if (wfPilotAgencies == null) {
+			wfPilotAgencies = new HashMap<String, String>();
+			//TODO: query Workfront for a list of pilot agencies
+		}
+		
+		List<Account> newPilotAgencies = new ArrayList<Account>();
+		for (Account account : jiraClient.getPilotAgencies()) {
+			if (wfPilotAgencies.get(account.agencyCode) == null) {
+				newPilotAgencies.add(account);
+				wfPilotAgencies.put(account.agencyCode, account.agencyCode);
+			}
+		}
+		
+		workfrontClient.addPilotAgencies(newPilotAgencies);
+	}
+	
 	private static void syncrhonizeRequests(Date lastSyncTimestamp, Date currentTimestamp) {
 		try {
 			activeRequests = workfrontClient.getActiveRequests(activeRequests, lastSyncTimestamp, currentTimestamp);
@@ -177,8 +199,7 @@ public class ProjectSynchronizer {
 			for (Project project : activeProjects.values()) {
 				if (project.hasJiraProjectID()) {
 					logger.debug("Syncing project '{}'...", project.getName());
-					syncTasks(project);
-//					syncTasks(project, lastSyncTimestamp, currentSyncTimestamp);
+					syncTasks(project, lastSyncTimestamp, currentSyncTimestamp);
 					syncWorkLog(project, currentSyncTimestamp);
 				}
 				else {
@@ -219,46 +240,44 @@ public class ProjectSynchronizer {
 		}
 	}
 	
-	private static void syncTasks(Project project) throws WorkfrontException, JiraException {
+	private static void syncTasks(Project project, Date lastSyncTimestamp, Date currentSyncTimestamp) throws WorkfrontException, JiraException {
 		// First, go through all the tasks we found in Workfront and make sure they
 		// are up to date with Jira.
-		for (Task task : project.getDevTasks().values()) {
+		for (Task task : project.getWorkfrontDevTasks().values()) {
+			if (!task.isSyncWithJira()) {
+				continue;
+			}
+			
 			if (task.getJiraIssueID() == null || task.getJiraIssueID().isEmpty()) {
-				
 				// This is a new task. Add it to Jira.
-				Task newTask = jiraClient.createIssue(project, task);
-				
+				jiraClient.createIssue(project, task);
 				// Then update the Workfront task with the Jira issue ID and URL
-				workfrontClient.updateTask(project, newTask);
+				workfrontClient.updateTask(project, task);
+				project.addDevTask(task);
 			}
 			else {
 				// This task is already in Jira. Query Jira to see if we need to update the task.
-			}
-		}
-		
-		// Then, look for new epics in Jira and add them to Workfront.
-		
-	}
-	
-	private static void syncTasks(Project project, Date lastSyncTimestamp, Date currentSyncTimestamp) throws JiraException, WorkfrontException {
-		ArrayList<Task> tasks = jiraClient.getEpics(project.getJiraProjectID());
-		
-		for (Task task : tasks) {
-			if (project.hasTask(task.getJiraIssueID())) {
-				if (task.equals(project.getDevTask(task.getJiraIssueID()))) {
+				Task jiraIssue = jiraClient.getIssue(task);
+				if (!jiraIssue.equals(task)) {
 					logger.debug("Updating task '{}'...", task.getJiraIssueID());
-					Task t = workfrontClient.updateTask(project, task);
+					jiraIssue.setWorkfrontTaskID(task.getWorkfrontTaskID());
+					workfrontClient.updateTask(project, jiraIssue);
 					// replace the current task with the new updated task.
-					project.addDevTask(t);
+					project.addDevTask(jiraIssue);
 				}
 				else {
 					logger.debug("Task {} hasn't changed", task.getJiraIssueID());
 				}
 			}
-			else {
-				logger.debug("Adding task '{}'...", task.getJiraIssueID());
-				Task newTask = workfrontClient.addImplementationSubtask(project, task);
-				project.addDevTask(newTask);
+		}
+		
+		// Then, look for new epics in Jira and add them to Workfront.
+		ArrayList<Task> epics = jiraClient.getEpics(project.getJiraProjectID());
+		for (Task task : epics) {
+			if (!project.hasJiraTask(task.getJiraIssueID())) {
+				logger.debug("Adding epic '{}'...", task.getJiraIssueID());
+				workfrontClient.addImplementationSubtask(project, task);
+				project.addDevTask(task);
 			}	
 		}
 	}

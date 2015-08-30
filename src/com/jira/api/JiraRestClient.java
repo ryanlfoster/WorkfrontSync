@@ -1,6 +1,8 @@
 package com.jira.api;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -180,10 +182,16 @@ public class JiraRestClient {
 			conn = createConnection(url, METHOD_POST);
 
 			// Send request
-			Writer out = new OutputStreamWriter(conn.getOutputStream());
-			out.write(params);
-			out.flush();
-			out.close();
+			DataOutputStream wr = new DataOutputStream(conn.getOutputStream());
+			BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(wr, "UTF-8"));
+			writer.write(params);
+			writer.close();
+			wr.close();
+			
+//			Writer out = new OutputStreamWriter(conn.getOutputStream());
+//			out.write(params);
+//			out.flush();
+//			out.close();
 			
 			// Read response
 			BufferedReader in;

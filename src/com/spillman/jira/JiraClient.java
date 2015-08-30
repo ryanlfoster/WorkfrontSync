@@ -30,6 +30,7 @@ public class JiraClient {
 	private JiraSQLClient sqlClient;
 	private JiraRestClient restClient;
 	private String jiraBrowseUrl;
+	private String epicIssueType;
 	private HashMap<String,String> programPrefix;
 	
 	public JiraClient(SyncProperties props) throws JiraException {
@@ -42,6 +43,7 @@ public class JiraClient {
 
 		this.jiraBrowseUrl = props.getJiraBrowseUrl();
 		this.programPrefix = props.getProgramPrefixMap();
+		this.epicIssueType = props.getJiraEpicIssueType();
 		
 		logger.exit();
 	}
@@ -52,8 +54,9 @@ public class JiraClient {
 	
 	public Task createIssue(Project project, Task task) throws JiraException {
 		// Create the Jira issue
+		Task jiraIssue;
 		try {
-			task = restClient.createIssue(project.getJiraProjectID(), task); 
+			jiraIssue = restClient.createIssue(project.getJiraProjectID(), task); 
 		} catch (JiraRestAPIException e) {
 			throw new JiraException(e);
 		}
@@ -83,9 +86,9 @@ public class JiraClient {
 		return task;
 	}
 
-	public Task getIssue(String issueID) {
-		return null;
-	}
+//	public Task getIssue(String issueID) {
+//		return null;
+//	}
 	
 	public ArrayList<WorkLog> getWorkLogEntries(Project project, Date startTime, Date endTime) throws JiraException {
 		logger.entry(project, startTime, endTime);
@@ -111,6 +114,23 @@ public class JiraClient {
 		}
 		
 		return logger.exit(worklog);
+	}
+	
+	public Task getIssue(Task task) throws JiraException {
+		logger.entry(task);
+		Task jiraIssue;
+		if (task.getJiraIssueType().equals(epicIssueType)) {
+			jiraIssue = sqlClient.getEpic(task.getJiraIssueID());
+		} else {
+			jiraIssue = sqlClient.getIssue(task.getJiraIssueID());
+			// We are not syncing duration for non-epic issues. Set
+			// the duration to the duration of the original task.
+			jiraIssue.setDuration(task.getDuration());
+			// We are also not syncing the description for non-epic issues.
+			jiraIssue.setDescription(task.getDescription());
+		}
+		jiraIssue.setJiraIssueUrl(jiraBrowseUrl + jiraIssue.getJiraIssueKey());
+		return logger.exit(jiraIssue);
 	}
 	
 	public ArrayList<Task> getEpics(String projectID) throws JiraException {
