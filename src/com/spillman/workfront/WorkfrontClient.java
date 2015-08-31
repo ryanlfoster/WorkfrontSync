@@ -66,6 +66,7 @@ public class WorkfrontClient {
 		Workfront.JIRA_ISSUE_URL,
 		Workfront.PILOT_AGENCY,
 		Workfront.JIRA_SYNC_TASK,
+		Workfront.LAST_UPDATE_DATE,
 		Workfront.PARENT_ID
 	};
 	
@@ -657,6 +658,10 @@ public class WorkfrontClient {
 		for (int i = 0; i < tasks.length(); i++) {
 			try {
 				project.addDevTask(new Task((JSONObject)tasks.getJSONObject(i)));
+				String epicName = ((JSONObject)tasks.getJSONObject(i)).getStringOrNull(Workfront.JIRA_ISSUE_EPIC_NAME);
+				if (epicName != null) {
+					project.addSpecialEpic(epicName);
+				}
 			} catch (JSONException e) {
 				throw new StreamClientException(e);
 			}

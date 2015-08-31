@@ -32,6 +32,7 @@ public class Project {
 	private List<String> versions;
 	private boolean syncWithJira;
 	private Date lastJiraSync;
+	private HashMap<String,Boolean> specialEpics;
 	private HashMap<String,Task> wfDevTasks; // Hashed by the Workfront ID
 	private HashMap<String,Task> jiraDevTasks; // Hash by the Jira ID
 	
@@ -46,6 +47,7 @@ public class Project {
 		setImplementationTaskID(null);
 		this.wfDevTasks = new HashMap<String,Task>();
 		this.jiraDevTasks = new HashMap<String,Task>();
+		this.specialEpics = new HashMap<String,Boolean>();
 
 		if (project.isNull(Workfront.JIRA_PROJECT_ID)) {
 			setJiraProjectID(null);
@@ -119,17 +121,6 @@ public class Project {
 				.append("devTasks", wfDevTasks).toString();
 	}
 
-//	public String getWorkfrontParentTaskID(Task task) {
-//		// Lookup up the parent task using the parentJiraIssuenum
-//		Task t = devTasks.get(task.getJiraParentIssuenum());
-//		if (t != null) {
-//			return t.getWorkfrontTaskID();
-//		}
-//		else {
-//			return null;
-//		}
-//	}
-//	
 	public String getWorkfrontProjectID() {
 		return workfrontProjectID;
 	}
@@ -201,6 +192,14 @@ public class Project {
 	
 	public boolean hasJiraTask(String key) {
 		return jiraDevTasks.containsKey(key);
+	}
+	
+	public boolean hasSpecialEpic(String key) {
+		return specialEpics.containsKey(key);
+	}
+	
+	public void addSpecialEpic(String key) {
+		specialEpics.put(key, true);
 	}
 	
 	public String getDescription() {

@@ -1,17 +1,23 @@
 package com.spillman.common;
 
+import java.text.ParseException;
+import java.util.Date;
 import java.util.Objects;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.spillman.workfront.Workfront;
 
 public class Task {
+	private static final Logger logger = LogManager.getLogger();
 	
 	private String workfrontTaskID;
 	private String workfrontParentTaskID;
+	private Date workfrontLastUpdateDate;
 	private String jiraIssueID;
 	private String jiraIssueType;
 	private String jiraIssueUrl;
@@ -45,6 +51,12 @@ public class Task {
 		workfrontStatus = task.getStringOrNull(Workfront.STATUS);
 		duration = (double)task.getLong(Workfront.DURATION_MINUTES) / 60.0;
 		percentComplete = task.getDouble(Workfront.PERCENT_COMPLETE);
+		
+		try {
+			workfrontLastUpdateDate = Workfront.dateFormatterTZ.parse(task.getString(Workfront.LAST_UPDATE_DATE));
+		} catch (ParseException e) {
+			logger.catching(e);
+		}
 		
 		if (task.has(Workfront.JIRA_SYNC_TASK)) {
 			String value = task.getString(Workfront.JIRA_SYNC_TASK);
@@ -196,6 +208,14 @@ public class Task {
 
 	public void setSyncWithJira(boolean syncWithJira) {
 		this.syncWithJira = syncWithJira;
+	}
+
+	public Date getWorkfrontLastUpdateDate() {
+		return workfrontLastUpdateDate;
+	}
+
+	public void setWorkfrontLastUpdateDate(Date workfrontLastUpdateDate) {
+		this.workfrontLastUpdateDate = workfrontLastUpdateDate;
 	}
 
 }

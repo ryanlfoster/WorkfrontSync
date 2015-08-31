@@ -12,6 +12,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.jira.api.Jira;
+import com.jira.api.JiraIssueNotFoundException;
 import com.jira.api.JiraRestAPIException;
 import com.jira.api.JiraRestClient;
 import com.jira.api.JiraSQLClient;
@@ -36,10 +37,10 @@ public class JiraClient {
 	public JiraClient(SyncProperties props) throws JiraException {
 		logger.entry(props);
 		
+		// The Jira client interacts with Jira through Jira's REST API and
+		// through direct access to the SQL database. 
 		this.restClient = new JiraRestClient(props);
-
-		String jdbcConnectionString = props.getJiraJDBCConnectionString();
-		this.sqlClient = new JiraSQLClient(jdbcConnectionString);
+		this.sqlClient = new JiraSQLClient(props.getJiraJDBCConnectionString());
 
 		this.jiraBrowseUrl = props.getJiraBrowseUrl();
 		this.programPrefix = props.getProgramPrefixMap();
@@ -53,10 +54,9 @@ public class JiraClient {
 	}
 	
 	public Task createIssue(Project project, Task task) throws JiraException {
-		// Create the Jira issue
-		Task jiraIssue;
 		try {
-			jiraIssue = restClient.createIssue(project.getJiraProjectID(), task); 
+			// Create an issue in Jira for this task
+			restClient.createIssue(project.getJiraProjectID(), task); 
 		} catch (JiraRestAPIException e) {
 			throw new JiraException(e);
 		}
@@ -67,10 +67,15 @@ public class JiraClient {
 			&& task.getJiraIssueKey() != null && !task.getJiraIssueKey().isEmpty()) {
 			
 			// Search Jira for an epic with the specified name
-			String epicKey = sqlClient.getEpicKey(task.getJiraEpicName(), project.getJiraProjectID());
-			
-			// If it's not there, add the epic
+			String epicKey = null;
 			try {
+				epicKey = sqlClient.getEpicKey(task.getJiraEpicName(), project.getJiraProjectID());
+			} catch (JiraIssueNotFoundException e) {
+				logger.catching(e);
+			}
+			
+			try {
+				// If we couldn't find the epic add the epic to Jira
 				if (epicKey == null) {
 					Task t = restClient.createEpic(project.getJiraProjectID(), task.getJiraEpicName());
 					epicKey = t.getJiraIssueKey();
@@ -86,60 +91,56 @@ public class JiraClient {
 		return task;
 	}
 
-//	public Task getIssue(String issueID) {
-//		return null;
-//	}
-	
 	public ArrayList<WorkLog> getWorkLogEntries(Project project, Date startTime, Date endTime) throws JiraException {
 		logger.entry(project, startTime, endTime);
 		
 		ArrayList<WorkLog> worklog;
 		
-		try {
-			logger.debug("Getting work log entries between {} and {}", startTime, endTime);
-			
-			ResultSet rs;
-			if (startTime != null) {
-				rs = sqlClient.getWorkLog(project.getJiraProjectID(), new java.sql.Timestamp(startTime.getTime()), new java.sql.Timestamp(endTime.getTime()));
-			} else {
-				rs = sqlClient.getWorkLog(project.getJiraProjectID(), new java.sql.Timestamp(endTime.getTime()));
-			}
-			worklog = processWorkLogEntries(rs);
-			rs.close();
-			
-			logger.debug("Found {} work log entries", worklog.size());
+		if (startTime != null) {
+			worklog = sqlClient.getWorkLog(project.getJiraProjectID(), new java.sql.Timestamp(startTime.getTime()), new java.sql.Timestamp(endTime.getTime()));
+		} else {
+			worklog = sqlClient.getWorkLog(project.getJiraProjectID(), new java.sql.Timestamp(endTime.getTime()));
 		}
-		catch (SQLException e) {
-			throw new JiraException(e);
+
+		for (WorkLog wl : worklog) {
+			wl.setJiraIssueUrl(jiraBrowseUrl + wl.getJiraIssueKey());
 		}
 		
+		logger.debug("Found {} work log entries for projectID {} between {} and {}", worklog.size(), project.getJiraProjectID(), startTime, endTime);
 		return logger.exit(worklog);
 	}
 	
 	public Task getIssue(Task task) throws JiraException {
 		logger.entry(task);
+		
 		Task jiraIssue;
 		if (task.getJiraIssueType().equals(epicIssueType)) {
 			jiraIssue = sqlClient.getEpic(task.getJiraIssueID());
 		} else {
 			jiraIssue = sqlClient.getIssue(task.getJiraIssueID());
+			
 			// We are not syncing duration for non-epic issues. Set
 			// the duration to the duration of the original task.
 			jiraIssue.setDuration(task.getDuration());
-			// We are also not syncing the description for non-epic issues.
+			
+			// We also are not syncing the description for non-epic issues.
 			jiraIssue.setDescription(task.getDescription());
 		}
+		
 		jiraIssue.setJiraIssueUrl(jiraBrowseUrl + jiraIssue.getJiraIssueKey());
+		
 		return logger.exit(jiraIssue);
 	}
 	
 	public ArrayList<Task> getEpics(String projectID) throws JiraException {
 		logger.entry(projectID);
+		
 		ArrayList<Task> tasks = sqlClient.getEpics(projectID);
 		for (Task t : tasks) {
 			t.setJiraIssueUrl(jiraBrowseUrl + t.getJiraIssueKey());
 		}
-		logger.debug("Found {} epics", tasks.size());
+		
+		logger.debug("Found {} epics for projectID {}", tasks.size(), projectID);
 		return logger.exit(tasks);
 	}
 	

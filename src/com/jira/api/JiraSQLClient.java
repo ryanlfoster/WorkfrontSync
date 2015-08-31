@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.spillman.common.Account;
 import com.spillman.common.Task;
+import com.spillman.common.WorkLog;
 import com.spillman.jira.JiraException;
 
 public class JiraSQLClient {
@@ -63,22 +64,19 @@ public class JiraSQLClient {
 			+ "		  WHERE [ID] = ?";
 
 	private Connection con = null;
+	private Statement pilotAgencyStatement = null;
 	private PreparedStatement backlogItemsStatement = null;
+	private PreparedStatement epicIdStatement = null;
+	private PreparedStatement epicStatement = null;
 	private PreparedStatement epicsSummaryStatement = null;
+	private PreparedStatement issueStatement = null;
 	private PreparedStatement validKeyStatement = null;
 	private PreparedStatement validProjectNameStatement = null;
 	private PreparedStatement workLogStatement = null;
 	private PreparedStatement workLogNoStartDateStatement = null;
-	private PreparedStatement epicIdStatement = null;
-	private PreparedStatement epicStatement = null;
-	private PreparedStatement issueStatement = null;
-	private Statement pilotAgencyStatement = null;
 
 	
 	public JiraSQLClient(String connectionString) throws JiraException {
-		logger.entry(connectionString);
-		
-		// Establish the connection.
 		try {
 			Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
 	    	con = DriverManager.getConnection(connectionString);
@@ -87,14 +85,10 @@ public class JiraSQLClient {
 		} catch (SQLException e) {
 			throw new JiraException(e);
 		}
-		
-		logger.exit();
 	}
 	
 	
 	public List<Account> getPilotAgencies() throws JiraException {
-		logger.entry();
-		
 		if (pilotAgencyStatement == null) {
 			try { pilotAgencyStatement = con.createStatement(); } 
 			catch (SQLException e) { throw new JiraException(e); }
@@ -102,13 +96,12 @@ public class JiraSQLClient {
 
 		List<Account> accounts = new ArrayList<Account>();
 		
-		// Provide values to the prepared statement
 		try {
 			ResultSet rs = pilotAgencyStatement.executeQuery(PILOT_AGENCIES_SQL);
 			while (rs.next()) {
 				accounts.add(new Account(null, null, rs.getString(Jira.AGENCY_CODE)));
 			}
-			return logger.exit(accounts);
+			return accounts;
 		} catch (SQLException e) {
 			throw new JiraException(e);
 		}
@@ -116,22 +109,19 @@ public class JiraSQLClient {
 	
 	
 	public String getEpicKey(String name, String projectID) throws JiraException {
-		logger.entry(name, projectID);
-		
 		if (epicIdStatement == null) {
 			try { epicIdStatement = con.prepareStatement(EPIC_ID_SQL); } 
 			catch (SQLException e) { throw new JiraException(e); }
 		}
 
-		// Provide values to the prepared statement
 		try {
 			epicIdStatement.setString(1, name);
 			epicIdStatement.setInt(2, Integer.parseInt(projectID));
 			ResultSet rs = epicIdStatement.executeQuery();
 			if (rs.next()) {
-				return logger.exit(rs.getString(Jira.PKEY));
+				return rs.getString(Jira.PKEY);
 			} else {
-				return logger.exit(null);
+				throw new JiraIssueNotFoundException("No epic foud for name " + name + " in project " + projectID);
 			}
 		} catch (SQLException e) {
 			throw new JiraException(e);
@@ -140,18 +130,14 @@ public class JiraSQLClient {
 	
 	
 	public ArrayList<Task> getEpics(String projectID) throws JiraException {
-		logger.entry(projectID);
-		
-		// Create an SQL prepared statement.
 		if (epicsSummaryStatement == null) {
 			try { epicsSummaryStatement = con.prepareStatement(EPICS_SUMMARY_SQL); } 
 			catch (SQLException e) { throw new JiraException(e); }
 		}
 
-		// Provide values to the prepared statement
 		try {
 			epicsSummaryStatement.setInt(1, Integer.parseInt(projectID));
-			return logger.exit(processEpics(epicsSummaryStatement.executeQuery()));
+			return processEpics(epicsSummaryStatement.executeQuery());
 		} catch (SQLException e) {
 			throw new JiraException(e);
 		}
@@ -159,19 +145,18 @@ public class JiraSQLClient {
 	
 	
 	public Task getEpic(String issueID) throws JiraException {
-		logger.entry(issueID);
-		
-		// Create an SQL prepared statement.
 		if (epicStatement == null) {
 			try { epicStatement = con.prepareStatement(EPIC_SQL); } 
 			catch (SQLException e) { throw new JiraException(e); }
 		}
 
-		// Provide values to the prepared statement
 		try {
 			epicStatement.setInt(1, Integer.parseInt(issueID));
 			ArrayList<Task> epics = processEpics(epicStatement.executeQuery());
-			return logger.exit(epics.get(0));
+			if (epics.size() < 1) {
+				throw new JiraIssueNotFoundException("No epic foud for issueID " + issueID);
+			}
+			return epics.get(0);
 		} catch (SQLException e) {
 			throw new JiraException(e);
 		}
@@ -179,72 +164,52 @@ public class JiraSQLClient {
 	
 	
 	public Task getIssue(String issueID) throws JiraException {
-		logger.entry(issueID);
-		
-		// Create an SQL prepared statement.
 		if (issueStatement == null) {
 			try { issueStatement = con.prepareStatement(ISSUE_SQL); } 
 			catch (SQLException e) { throw new JiraException(e); }
 		}
 
-		// Provide values to the prepared statement
 		try {
-			Task task = new Task();
 			issueStatement.setInt(1, Integer.parseInt(issueID));
 			ResultSet rs = issueStatement.executeQuery();
-			if (rs.next()) {
-				task.setName(rs.getString(Jira.SUMMARY));
-				task.setJiraIssueID(Integer.toString(rs.getInt(Jira.SQL_ID)));
-				task.setJiraIssueKey(rs.getString(Jira.ISSUE_KEY));
-				task.setJiraIssueType(rs.getString(Jira.ISSUE_TYPE));
-				if (rs.getString(Jira.ISSUE_STATUS).equals(Jira.ISSUE_STATUS_CLOSED)) {
-					task.setPercentComplete(100.0);
-				} else {
-					task.setPercentComplete(0.0);
-				}
+			Task task = processTask(rs);
+			if (task == null) {
+				throw new JiraIssueNotFoundException("No issue found for issueID " + issueID);
 			}
-			return logger.exit(task);
+			return task; 
 		} catch (SQLException e) {
 			throw new JiraException(e);
 		}
 	}
-	
-	
-	public ResultSet getWorkLog(String projectID, Timestamp startTime, Timestamp endTime) throws JiraException {
-		logger.entry(projectID, startTime, endTime);
-		
-		// Create an SQL prepared statement.
+
+
+	public ArrayList<WorkLog> getWorkLog(String projectID, Timestamp startTime, Timestamp endTime) throws JiraException {
 		if (workLogStatement == null) {
 			try { workLogStatement = con.prepareStatement(WORK_LOG_WITH_EPIC_SQL); } 
 			catch (SQLException e) { throw new JiraException(e); }
 		}
 
-		// Provide values to the prepared statement
 		try {
 			workLogStatement.setInt(1, Integer.parseInt(projectID));
 			workLogStatement.setTimestamp(2, startTime);
 			workLogStatement.setTimestamp(3, endTime);
-			return logger.exit(workLogStatement.executeQuery());
+			return processWorkLogEntries(workLogStatement.executeQuery());
 		} catch (SQLException e) {
 			throw new JiraException(e);
 		}
 	}
 	
 	
-	public ResultSet getWorkLog(String projectID, Timestamp endTime) throws JiraException {
-		logger.entry(projectID, endTime);
-		
-		// Create an SQL prepared statement.
+	public ArrayList<WorkLog> getWorkLog(String projectID, Timestamp endTime) throws JiraException {
 		if (workLogNoStartDateStatement == null) {
 			try { workLogNoStartDateStatement = con.prepareStatement(WORK_LOG_WITH_EPIC_NO_START_DATE_SQL); } 
 			catch (SQLException e) { throw new JiraException(e); }
 		}
 
-		// Provide values to the prepared statement
 		try {
 			workLogNoStartDateStatement.setInt(1, Integer.parseInt(projectID));
 			workLogNoStartDateStatement.setTimestamp(2, endTime);
-			return logger.exit(workLogNoStartDateStatement.executeQuery());
+			return processWorkLogEntries(workLogNoStartDateStatement.executeQuery());
 		} catch (SQLException e) {
 			throw new JiraException(e);
 		}
@@ -252,20 +217,18 @@ public class JiraSQLClient {
 	
 	
 	public boolean projectKeyExists(String key) throws JiraException {
-		logger.entry(key);
-		
-		// Create an SQL prepared statement.
 		if (validKeyStatement == null) {
 			try { validKeyStatement = con.prepareStatement(VALID_KEY_SQL); } 
 			catch (SQLException e) { throw new JiraException(e); }
 		}
 
-		// Provide values to the prepared statement
 		try {
 			validKeyStatement.setString(1, key);
 			validKeyStatement.setString(2, key);
 			ResultSet rs = validKeyStatement.executeQuery();
-			return logger.exit(rs.next()); 
+			boolean retval = rs.next();
+			rs.close();
+			return retval; 
 		} catch (SQLException e) {
 			throw new JiraException(e);
 		}
@@ -273,19 +236,17 @@ public class JiraSQLClient {
 	
 	
 	public boolean projectNameExists(String projectName) throws JiraException {
-		logger.entry(projectName);
-		
-		// Create an SQL prepared statement.
 		if (validProjectNameStatement == null) {
 			try { validProjectNameStatement = con.prepareStatement(VALID_PROJECT_NAME_SQL); } 
 			catch (SQLException e) { throw new JiraException(e); }
 		}
 
-		// Provide values to the prepared statement
 		try {
 			validProjectNameStatement.setString(1, projectName);
 			ResultSet rs = validProjectNameStatement.executeQuery();
-			return logger.exit(rs.next()); 
+			boolean retval = rs.next();
+			rs.close();
+			return retval; 
 		} catch (SQLException e) {
 			throw new JiraException(e);
 		}
@@ -298,8 +259,6 @@ public class JiraSQLClient {
 	}
 
 	private ArrayList<Task> processEpics(ResultSet rs) throws SQLException {
-		logger.entry(rs);
-		
 		ArrayList<Task> tasks = new ArrayList<Task>();
 		
 		while (rs.next()) {
@@ -354,6 +313,43 @@ public class JiraSQLClient {
 			tasks.add(task);
 		}
 		
-		return logger.exit(tasks);
+		return tasks;
+	}
+
+	
+	private Task processTask(ResultSet rs)	throws SQLException, JiraIssueNotFoundException {
+		Task task = null;
+		if (rs.next()) {
+			task = new Task();
+			task.setName(rs.getString(Jira.SUMMARY));
+			task.setJiraIssueID(Integer.toString(rs.getInt(Jira.SQL_ID)));
+			task.setJiraIssueKey(rs.getString(Jira.ISSUE_KEY));
+			task.setJiraIssueType(rs.getString(Jira.ISSUE_TYPE));
+			if (rs.getString(Jira.ISSUE_STATUS).equals(Jira.ISSUE_STATUS_CLOSED)) {
+				task.setPercentComplete(100.0);
+			} else {
+				task.setPercentComplete(0.0);
+			}
+		}
+		return task;
+	}
+	
+	
+	private ArrayList<WorkLog> processWorkLogEntries(ResultSet rs) throws SQLException {
+		ArrayList<WorkLog> worklog = new ArrayList<WorkLog>();
+		
+		while (rs.next()) {
+			WorkLog wl = new WorkLog();
+			wl.setDateWorked(rs.getTimestamp(Jira.DATE_WORKED));
+			wl.setDescription(rs.getString(Jira.DESCRIPTION));
+			wl.setHoursWorked(rs.getDouble(Jira.HOURS_WORKED));
+			wl.setJiraIssuenum(rs.getString(Jira.ISSUENUM));
+			wl.setJiraWorker(rs.getString(Jira.WORKER));
+			wl.setEpicIssuenum(rs.getString(Jira.EPIC_ID));
+			wl.setJiraIssueKey(rs.getString(Jira.ISSUE_KEY));
+			worklog.add(wl);
+		}
+		
+		return worklog;
 	}
 }

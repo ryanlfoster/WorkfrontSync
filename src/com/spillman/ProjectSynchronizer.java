@@ -14,6 +14,7 @@ import javax.swing.event.ListSelectionEvent;
 
 import com.attask.api.StreamClientException;
 import com.jira.api.Jira;
+import com.jira.api.JiraIssueNotFoundException;
 import com.spillman.common.Account;
 import com.spillman.common.Opportunity;
 import com.spillman.common.Project;
@@ -244,7 +245,8 @@ public class ProjectSynchronizer {
 		// First, go through all the tasks we found in Workfront and make sure they
 		// are up to date with Jira.
 		for (Task task : project.getWorkfrontDevTasks().values()) {
-			if (!task.isSyncWithJira()) {
+			// Skip any tasks that aren't marked to sync with Jira or haven't changed since the last sync cycle
+			if (!task.isSyncWithJira() || lastSyncTimestamp.after(task.getWorkfrontLastUpdateDate())) {
 				continue;
 			}
 			
@@ -257,16 +259,21 @@ public class ProjectSynchronizer {
 			}
 			else {
 				// This task is already in Jira. Query Jira to see if we need to update the task.
-				Task jiraIssue = jiraClient.getIssue(task);
-				if (!jiraIssue.equals(task)) {
-					logger.debug("Updating task '{}'...", task.getJiraIssueID());
-					jiraIssue.setWorkfrontTaskID(task.getWorkfrontTaskID());
-					workfrontClient.updateTask(project, jiraIssue);
-					// replace the current task with the new updated task.
-					project.addDevTask(jiraIssue);
-				}
-				else {
-					logger.debug("Task {} hasn't changed", task.getJiraIssueID());
+				Task jiraIssue;
+				try {
+					jiraIssue = jiraClient.getIssue(task);
+					if (!jiraIssue.equals(task)) {
+						logger.debug("Updating task '{}'...", task.getJiraIssueID());
+						jiraIssue.setWorkfrontTaskID(task.getWorkfrontTaskID());
+						workfrontClient.updateTask(project, jiraIssue);
+						// replace the current task with the new updated task.
+						project.addDevTask(jiraIssue);
+					}
+					else {
+						logger.debug("Task {} hasn't changed", task.getJiraIssueID());
+					}
+				} catch (JiraIssueNotFoundException e) {
+					logger.catching(e);
 				}
 			}
 		}
@@ -274,7 +281,10 @@ public class ProjectSynchronizer {
 		// Then, look for new epics in Jira and add them to Workfront.
 		ArrayList<Task> epics = jiraClient.getEpics(project.getJiraProjectID());
 		for (Task task : epics) {
-			if (!project.hasJiraTask(task.getJiraIssueID())) {
+			if (!project.hasJiraTask(task.getJiraIssueID()) // if the epic isn't already a task in the project 
+					&& !project.hasSpecialEpic(task.getName()) // and the name of the epic is not on the list of "speical" epics
+				) {
+				// Add the epic to Workfront
 				logger.debug("Adding epic '{}'...", task.getJiraIssueID());
 				workfrontClient.addImplementationSubtask(project, task);
 				project.addDevTask(task);

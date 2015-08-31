@@ -8,6 +8,7 @@ public class WorkLog {
 
 	private String workfrontTaskID;
 	private String jiraIssuenum;
+	private String jiraIssueKey;
 	private String epicIssuenum;
 	private Double hoursWorked;
 	private String workfrontOwnerID;
@@ -24,6 +25,7 @@ public class WorkLog {
 		return new ToStringBuilder(this)
 			.append("workfrontTaskID", workfrontTaskID)
 			.append("jiraIssuenum", jiraIssuenum)
+			.append("jiraIssueKey", jiraIssueKey)
 			.append("epicIssuenum", epicIssuenum)
 			.append("hoursWorked", hoursWorked)
 			.append("workfrontOwnerID", workfrontOwnerID)
@@ -104,5 +106,13 @@ public class WorkLog {
 
 	public void setJiraIssueUrl(String jiraIssueUrl) {
 		this.jiraIssueUrl = jiraIssueUrl;
+	}
+
+	public String getJiraIssueKey() {
+		return jiraIssueKey;
+	}
+
+	public void setJiraIssueKey(String jiraIssueKey) {
+		this.jiraIssueKey = jiraIssueKey;
 	}
 }

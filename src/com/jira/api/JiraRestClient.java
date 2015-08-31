@@ -89,18 +89,18 @@ public class JiraRestClient {
 		task.setName(name);
 		task.setJiraIssueType(epicIssueType);
 		task.setDuration(0.0);
-		return createIssue(jiraProjectID, task);
-		
+		createIssue(jiraProjectID, task);
+		return task;
 	}
 	
-	public Task createIssue(String jiraProjectID, Task task) throws JiraRestAPIException {
+	public void createIssue(String jiraProjectID, Task task) throws JiraRestAPIException {
 		// Create the issue
 		String params;
 		try {
 			params = formatParameters(jiraProjectID, task);
 		} catch (JiraRestAPIException e) {
 			logger.catching(e);
-			return task;
+			return;
 		}
 		JSONObject result = request(createIssueUrl, params);
 
@@ -116,8 +116,6 @@ public class JiraRestClient {
 		} catch (JSONException e) {
 			throw new JiraRestAPIException(e);
 		}
-		
-		return task;
 	}
 
 	public boolean linkIssueToEpic(String issueKey, String epicKey) throws JiraRestAPIException {
