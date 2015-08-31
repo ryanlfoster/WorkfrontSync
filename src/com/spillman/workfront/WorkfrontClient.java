@@ -1,5 +1,6 @@
 package com.spillman.workfront;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -185,6 +186,26 @@ public class WorkfrontClient {
 		}
 
 		logger.exit();
+	}
+	
+	public HashMap<String,String> getPilotAgencies() throws WorkfrontException {
+		logger.entry();
+
+		HashMap<String,String> accounts = new HashMap<String,String>();
+		String[] fields = new String[] {Workfront.ID, Workfront.VALUE, Workfront.LABEL};
+
+		try {
+			JSONArray results = getObjects(Workfront.OBJCODE_POPT, Workfront.PARAMETER_ID, pilotAgencyFieldID, fields);
+			for (int i = 0; i < results.length(); i++) {
+				JSONObject account = (JSONObject)results.get(i);
+				String code = account.getString(Workfront.VALUE);
+				accounts.put(code, code);
+			}
+		} catch (StreamClientException | JSONException e) {
+			throw new WorkfrontException(e);
+		}
+		
+		return logger.exit(accounts);
 	}
 
 	public void addOpportunities(List<Opportunity> opportunities) throws WorkfrontException {
@@ -509,17 +530,6 @@ public class WorkfrontClient {
 	public Task updateTask(Project project, Task updatedTask) throws WorkfrontException {
 		logger.entry(project, updatedTask);
 		
-//		// Copy the Workfront task ID to the updated task
-//		Task curTask = project.getDevTask(updatedTask.getJiraIssueID());
-//		if (curTask == null) {
-//			logger.error("Could not find task {} in development task list in project {}", updatedTask, project);
-//			return updatedTask;
-//		}
-//		updatedTask.setWorkfrontTaskID(curTask.getWorkfrontTaskID());
-//
-//		// Set the parent ID to the implementation task
-//		updatedTask.setWorkfrontParentTaskID(project.getImplementationTaskID());
-		
 		// Update the task in Workfront
 		try {
 			Map<String, Object> fields = formatTaskFields(project, updatedTask);
@@ -754,6 +764,22 @@ public class WorkfrontClient {
 	}
 
 	
+	private JSONArray getObjects(String objcode, String paramName, String paramValue, String[] fields) throws StreamClientException, JSONException {
+		logger.entry(objcode, paramName);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put(paramName, paramValue);
+		map.put(Workfront.LIMIT, Workfront.MAX_PROJECTS);
+		JSONArray results = client.search(objcode, map, fields);
+		
+		if(results.length() < 1) {
+			logger.warn("No objects found: objcode={}, objID={}, objValue={}", objcode, paramName, paramValue);
+		}
+		
+		return logger.exit(results);
+	}
+	
+
 	private String getObjectID(String objcode, String objname, String field) throws StreamClientException, JSONException {
 		logger.entry(objcode, objname);
 		

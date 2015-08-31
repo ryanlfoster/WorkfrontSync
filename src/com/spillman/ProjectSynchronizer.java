@@ -118,9 +118,9 @@ public class ProjectSynchronizer {
 
 			currentTimestamp = new Date();
 			
-//			synchronizeCustomFields(lastSyncTimestamp, currentTimestamp);
+			synchronizeCustomFields(lastSyncTimestamp, currentTimestamp);
 			synchronizeProjects(lastSyncTimestamp, currentTimestamp);
-//			syncrhonizeRequests(lastSyncTimestamp, currentTimestamp);
+			syncrhonizeRequests(lastSyncTimestamp, currentTimestamp);
 			
 			lastSyncTimestamp = currentTimestamp;
 			lastSync.setLastSyncDate(lastSyncTimestamp);
@@ -159,7 +159,7 @@ public class ProjectSynchronizer {
 	private static void syncPilotAgencies() throws JiraException, WorkfrontException {
 		// Initialize the in memory copy of the list of pilot agencies
 		if (wfPilotAgencies == null) {
-			wfPilotAgencies = new HashMap<String, String>();
+			wfPilotAgencies = workfrontClient.getPilotAgencies(); //new HashMap<String, String>();
 			//TODO: query Workfront for a list of pilot agencies
 		}
 		
