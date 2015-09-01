@@ -46,11 +46,19 @@ public class ProjectSynchronizer {
 	
 	public static void main(String[] args) {
 		logger.info("Starting Project Synchronizer");
+		
 		try {
 			setup();
 			synchronize();
 		} catch (Exception e) {
+			
+			// Obviously something unexpected happened if we got to this point
+			// Log the error and then exit
 			logger.catching(e);
+		
+			// Make sure we exit with "an unexpected error" so the Windows services
+			// auto recovery will restart the service
+			System.exit(-1); 
 		}
 	}
 
@@ -115,7 +123,7 @@ public class ProjectSynchronizer {
 		Date lastSyncTimestamp = lastSync.getLastSyncDate();
 		
 		do {
-			logger.debug(">>>>> Starting Sync Cycle <<<<<");
+			logger.debug(">>>>> Start Sync Cycle <<<<<");
 
 			currentTimestamp = new Date();
 			
@@ -132,7 +140,7 @@ public class ProjectSynchronizer {
 				logger.catching(e);
 			}
 
-			logger.debug("<<<<< End of Sync Cycle >>>>>");
+			logger.debug("<<<<< End Sync Cycle >>>>>");
 			try { 
 				logger.info("Sleeping for {} seconds...", properties.getTimeToSleep()/1000);
 				Thread.sleep(properties.getTimeToSleep()); 
@@ -160,10 +168,12 @@ public class ProjectSynchronizer {
 	private static void syncPilotAgencies() throws JiraException, WorkfrontException {
 		// Initialize the in memory copy of the list of pilot agencies
 		if (wfPilotAgencies == null) {
-			wfPilotAgencies = workfrontClient.getPilotAgencies(); //new HashMap<String, String>();
-			//TODO: query Workfront for a list of pilot agencies
+			wfPilotAgencies = workfrontClient.getPilotAgencies(); 
 		}
 		
+		// Compare the list of pilot agencies in Jira to the list of
+		// pilot agencies in Workfront. Keep track of those that
+		// are missing in Workfront.
 		List<Account> newPilotAgencies = new ArrayList<Account>();
 		for (Account account : jiraClient.getPilotAgencies()) {
 			if (wfPilotAgencies.get(account.agencyCode) == null) {
@@ -172,6 +182,7 @@ public class ProjectSynchronizer {
 			}
 		}
 		
+		// Now add the missing pilot agencies to Workfront.
 		workfrontClient.addPilotAgencies(newPilotAgencies);
 	}
 	
@@ -233,8 +244,8 @@ public class ProjectSynchronizer {
 			workfrontClient.addWorkLogEntry(project, wl);
 		}
 		
-		// If we processed some worklog entries, update the Last Jira Sync custom field
-		// on the Workfront project
+		// If we processed some worklog entries, update the "Last Jira Sync"
+		// custom field in the Workfront project
 		if (worklog.size() > 0) {
 			project.setLastJiraSync(currentSyncTimestamp);
 			workfrontClient.updateLastJiraSync(project);
@@ -242,17 +253,21 @@ public class ProjectSynchronizer {
 	}
 	
 	private static void syncTasks(Project project, Date lastSyncTimestamp, Date currentSyncTimestamp) throws WorkfrontException, JiraException {
+
 		// First, go through all the tasks we found in Workfront and make sure they
 		// are up to date with Jira.
 		for (Task task : project.getWorkfrontDevTasks().values()) {
+
 			// Skip any tasks that aren't marked to sync with Jira or haven't changed since the last sync cycle
 			if (!task.isSyncWithJira() || lastSyncTimestamp.after(task.getWorkfrontLastUpdateDate())) {
 				continue;
 			}
 			
 			if (task.getJiraIssueID() == null || task.getJiraIssueID().isEmpty()) {
+
 				// This is a new task. Add it to Jira.
 				jiraClient.createIssue(project, task);
+
 				// Then update the Workfront task with the Jira issue ID and URL
 				workfrontClient.updateTask(project, task);
 				project.addDevTask(task);

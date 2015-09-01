@@ -500,23 +500,41 @@ public class WorkfrontClient {
 					syncWithJira = project.getString(Workfront.SYNC_WITH_JIRA).equals("Yes");
 				}
 				
-				// If the syncWithJira flag is set and it isn't already in the list of projects, add it
-				if (!activeProjects.containsKey(projectID) && syncWithJira) {
-					Project p = new Project(project);
-					p.setImplementationTaskID(getImplementationTaskID(p.getWorkfrontProjectID()));
-					addDevTasks(p);
-					activeProjects.put(p.getWorkfrontProjectID(), p);
-					logger.debug("Added project {} ({}) to the list of projects to sync", name, projectID);
+				// If the project IS NOT in the list
+				if (!activeProjects.containsKey(projectID)) {
+					
+					// and the "Sync With Jira" flag is set to "Yes"
+					if (syncWithJira) {
+						
+						// add the project to the list
+						Project p = new Project(project);
+						p.setImplementationTaskID(getImplementationTaskID(p.getWorkfrontProjectID()));
+						addDevTasks(p);
+						activeProjects.put(p.getWorkfrontProjectID(), p);
+						logger.debug("Added project {} ({}) to the list of projects to sync", name, projectID);
+					} 
+
+					// otherwise, skip the project
+					else {
+						logger.warn("Skipping project {} ({}) because the 'Sync With Jira' flag is set to 'No'", name, projectID);
+					}
 				}
-				// If the project is in the list but the status is Closed or the syncWithJira flag isn't set, remove it
-				else if(activeProjects.containsKey(projectID) && (status.equals(Workfront.STATUS_CLOSED) || !syncWithJira)) {
-					activeProjects.remove(projectID);
-					logger.debug("Removed project {} ({}) from the list of projects to sync", name, projectID);
-				}
-				// Otherwise, the project is in the list and should be synced with Jira
-				else {
-					// Update the list of tasks in the project
-					addDevTasks(activeProjects.get(projectID));
+				
+				// If the project IS in the list
+				else if(activeProjects.containsKey(projectID)) {
+					
+					// and the status is closed or the flag is set to "No"
+					if (status.equals(Workfront.STATUS_CLOSED) || !syncWithJira) {
+						
+						// remove the project from the list
+						activeProjects.remove(projectID);
+						logger.debug("Removed project {} ({}) from the list of projects to sync", name, projectID);
+					} 
+					
+					// otherwise, update the list of tasks in the project
+					else {
+						addDevTasks(activeProjects.get(projectID));
+					}
 				}
 			} catch (JSONException e) {
 				throw new WorkfrontException(e);
@@ -736,10 +754,8 @@ public class WorkfrontClient {
 		// If no dates were provided, query for a fresh list of active projects
 		// that are marked to be synced with Jira
 		if (lastUpdateStart == null || lastUpdateEnd == null) {
-			// Active dev projects are those projects that have a Current status...
-			// TODO: sync with any status
-//			search.put(Workfront.STATUS, Workfront.STATUS_CURRENT);
-			// and have the custom field "Sync With Jira" set to "Yes".
+			// Active dev projects are those projects that have the 
+			// custom field "Sync With Jira" set to "Yes".
 			search.put(Workfront.SYNC_WITH_JIRA, Workfront.YES);
 		}
 		
