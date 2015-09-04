@@ -50,11 +50,17 @@ public class CRMSQLClient {
 	final private static String OPPORTUNITY_SQL = OPPORUNITY_SELECT_STATEMENT 
             + "WHERE  OP.OpportunityId = ?";
 
+	final private static String OPPORTUNITIES_SQL = OPPORUNITY_SELECT_STATEMENT 
+            + "WHERE  OP.OpportunityId IN (?,?,?,?,?,?,?,?,?,?)"; // number of question marks must match MAX_OPPORTUNITIES
+	
+	final private static int MAX_OPPORTUNITIES = 10;
+
 	private Connection con = null;
 	private PreparedStatement accountNamesStatement = null;
 	private PreparedStatement openOpportunitiesStatement = null;
 	private PreparedStatement closedOpportunitiesStatement = null;
 	private PreparedStatement opportunityStatement = null;
+	private PreparedStatement opportunitiesStatement = null;
 	private Calendar gmtcal = null;
 
 	public CRMSQLClient(String connectionString) throws CRMException {
@@ -77,8 +83,6 @@ public class CRMSQLClient {
 	}
 	
 	public List<Account> getAccountNames(Timestamp createdSince) throws CRMException {
-		logger.entry(createdSince);
-		
 		try {
 			if (accountNamesStatement == null) {
 				accountNamesStatement = con.prepareStatement(ACCOUNT_NAMES_SQL);
@@ -93,15 +97,13 @@ public class CRMSQLClient {
 			}
 			rs.close();
 			
-			return logger.exit(codes);
+			return codes;
 		} catch (SQLException e) {
 			throw new CRMException(e);
 		}
 	}
 
 	public List<Opportunity> getOpenOpportunities(Timestamp createdSince) throws CRMException {
-		logger.entry(createdSince);
-		
 		try {
 			if (openOpportunitiesStatement == null) {
 				openOpportunitiesStatement = con.prepareStatement(OPEN_OPPORTUNITIES_SQL);
@@ -116,15 +118,13 @@ public class CRMSQLClient {
 			}
 			rs.close();
 			
-			return logger.exit(codes);
+			return codes;
 		} catch (SQLException e) {
 			throw new CRMException(e);
 		}
 	}
 
 	public List<Opportunity> getClosedOpportunities(Timestamp modifiedSince) throws CRMException {
-		logger.entry(modifiedSince);
-		
 		try {
 			if (closedOpportunitiesStatement == null) {
 				closedOpportunitiesStatement = con.prepareStatement(CLOSED_OPPORTUNITIES_SQL);
@@ -139,15 +139,13 @@ public class CRMSQLClient {
 			}
 			rs.close();
 			
-			return logger.exit(codes);
+			return codes;
 		} catch (SQLException e) {
 			throw new CRMException(e);
 		}
 	}
 
 	public Opportunity getOpportunity(String id) throws CRMException {
-		logger.entry(id);
-		
 		try {
 			if (opportunityStatement == null) {
 				opportunityStatement = con.prepareStatement(OPPORTUNITY_SQL);
@@ -163,11 +161,44 @@ public class CRMSQLClient {
 				logger.trace("The query didn't return any results.");
 			}
 			rs.close();
-			return logger.exit(opp);
+			return opp;
 		} catch (SQLException e) {
 			throw new CRMException(e);
 		}
+	}
+	
+	public List<Opportunity> getOpportunities(List<String> ids) throws CRMException {
+		try {
+			if (opportunitiesStatement == null) {
+				opportunitiesStatement = con.prepareStatement(OPPORTUNITIES_SQL);
+			}
 			
+			int size = ids.size();
+			if (size > MAX_OPPORTUNITIES) {
+				size = MAX_OPPORTUNITIES;
+				logger.error("The number of opportunites exceeds the maximum allowed: MAX_OPPORTUNITIES={}", MAX_OPPORTUNITIES);
+			}
+			
+			int i = 0;
+			while (i < size) {
+				opportunitiesStatement.setString(i+1, ids.get(i));
+				i++;
+			}
+			while (i < MAX_OPPORTUNITIES) {
+				opportunitiesStatement.setNull(i+1, java.sql.Types.VARCHAR);
+				i++;
+			}
+			
+			ResultSet rs = opportunitiesStatement.executeQuery();
+			List<Opportunity> opps = new ArrayList<Opportunity>();
+			while (rs.next()) {
+				opps.add(createOpportunityFromResultSet(rs));
+			}
+			rs.close();
+			return opps;
+		} catch (SQLException e) {
+			throw new CRMException(e);
+		}
 	}
 	
 	private Opportunity createOpportunityFromResultSet(ResultSet rs) throws SQLException {

@@ -25,6 +25,7 @@ import com.spillman.crm.CRMClient;
 import com.spillman.crm.CRMException;
 import com.spillman.jira.JiraClient;
 import com.spillman.jira.JiraException;
+import com.spillman.workfront.Workfront;
 import com.spillman.workfront.WorkfrontClient;
 import com.spillman.workfront.WorkfrontException;
 
@@ -126,9 +127,9 @@ public class ProjectSynchronizer {
 			logger.debug(">>>>> Start Sync Cycle <<<<<");
 
 			currentTimestamp = new Date();
-			
-			synchronizeCustomFields(lastSyncTimestamp, currentTimestamp);
-			synchronizeProjects(lastSyncTimestamp, currentTimestamp);
+
+//			synchronizeCustomFields(lastSyncTimestamp, currentTimestamp);
+//			synchronizeProjects(lastSyncTimestamp, currentTimestamp);
 			syncrhonizeRequests(lastSyncTimestamp, currentTimestamp);
 			
 			lastSyncTimestamp = currentTimestamp;
@@ -187,20 +188,62 @@ public class ProjectSynchronizer {
 	}
 	
 	private static void syncrhonizeRequests(Date lastSyncTimestamp, Date currentTimestamp) {
+		List<String> requestsToDelete = new ArrayList<String>();
+		
+		// Update the list of active requests
 		try {
 			activeRequests = workfrontClient.getActiveRequests(activeRequests, lastSyncTimestamp, currentTimestamp);
-			for (Request request : activeRequests.values()) {
-				Opportunity opp = request.getOpportunity();
-				if (opp != null && opp.getCrmOpportunityID() != null && !opp.getCrmOpportunityID().isEmpty()) {
-					Opportunity curopp = crmClient.getOpportunity(opp);
-					if (curopp != null && !opp.hasSameStatus(curopp)) {
-						workfrontClient.updateOpportunityStatus(request, curopp);
-					}
-				}
-			}
-		} catch (WorkfrontException | CRMException e) {
-			logger.fatal("Experienced an error", e);
+		} catch (WorkfrontException e) {
+			logger.fatal("Experienced an error getting active requests", e);
 			System.exit(-1);
+		}
+		
+		// Sync each request
+		for (Request request : activeRequests.values()) {
+			try {
+				syncRequest(request);
+			} catch (WorkfrontException e) {
+				
+				// We may find that the request doesn't exist in Workfront anymore
+				// (this happens if the request was converted to a project)
+				if (e.getMessageKey() != null && e.getMessageKey().equals(Workfront.RECORD_NOT_FOUND)) {
+					
+					// Keep track of the deleted request so we can remove it from the list
+					requestsToDelete.add(request.getWorkfrontRequestID());
+				} else {
+					logger.fatal("Experienced an error syncing a request", e);
+					System.exit(-1);
+				}
+			} catch (CRMException e) {
+				logger.fatal("Experienced an error syncing a request", e);
+				System.exit(-1);
+			}
+		}
+
+		// If we ran across any requests that have been deleted
+		// remove them from our list.
+		for (String id : requestsToDelete) {
+			activeRequests.remove(id);
+		}
+	}
+
+
+	private static void syncRequest(Request request) throws CRMException, WorkfrontException {
+
+		// If the request has a CRM opportunity ID...
+		Opportunity opp = request.getOpportunity();
+		if (opp != null && opp.getCrmOpportunityID() != null && !opp.getCrmOpportunityID().isEmpty()) {
+			
+			Integer cp = crmClient.getCombinedProbability(request.getAllOpportunityIDs());
+			
+			// and the opportunity has changed...
+			Opportunity curopp = crmClient.getOpportunity(opp);
+			if (curopp != null && !opp.hasSameStatus(curopp) || !cp.equals(request.getCombinedProbability())) {
+				
+				// update the opportunity's status
+				request.setCombinedProbability(cp);
+				workfrontClient.updateOpportunityStatus(request, curopp);
+			}
 		}
 	}
 

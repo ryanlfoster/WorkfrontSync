@@ -109,5 +109,4 @@ public class Opportunity {
 	public void setState(Integer state) {
 		this.state = state;
 	}
-
 }

@@ -38,6 +38,7 @@ public class SyncProperties extends Properties {
 	
 	private static final String PROP_NEW_PROJECT_REQUEST_PROJECT_ID		= "Workfront.NewProjectRequestProjectID";
 	private static final String PROP_WORKFRONT_ACCOUNT_NAME_PARAM		= "Workfront.AccountNameParam";
+	private static final String PROP_WORKFRONT_ADDTL_OPPORTUNITIES_PARAM= "Workfront.AdditionalOpportunityNameParam";
 	private static final String PROP_WORKFRONT_APIKEY					= "Workfront.ApiKey";
 	private static final String PROP_WORKFRONT_DEV_PORTFOLIO			= "Workfront.DevPortfolio";
 	private static final String PROP_WORKFRONT_OPPORTUNITY_NAME_PARAM	= "Workfront.OpportunityNameParam";
@@ -73,6 +74,10 @@ public class SyncProperties extends Properties {
 
 	public String getWorkfrontOpportunityNameParam() {
 		return this.getProperty(PROP_WORKFRONT_OPPORTUNITY_NAME_PARAM); 
+	}
+
+	public String getWorkfrontAdditionalOpportunitiesParam() {
+		return this.getProperty(PROP_WORKFRONT_ADDTL_OPPORTUNITIES_PARAM); 
 	}
 
 	public String getWorkfrontPilotAgencyParam() {

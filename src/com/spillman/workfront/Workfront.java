@@ -17,7 +17,9 @@ public class Workfront {
 	public static final String OBJCODE_USER	 			= "user";
 
 	// Workfront Fields
+	public static final String ADDITIONAL_OPPORTUNITIES	= "DE:Additional Opportunities";
 	public static final String ASSIGNED_TO_ID			= "assignedToID";
+	public static final String COMBINED_PROBABILITY		= "DE:Combined Probability";
 	public static final String CUSTOM_FORM_ID			= "categoryID";
 	public static final String DESCRIPTION 				= "description";
 	public static final String DURATION_EXPRESSION		= "durationExpression";
@@ -67,6 +69,9 @@ public class Workfront {
 	public static final String VALUE					= "value";
 	public static final String VERSIONS					= "DE:What versions of Spillman will be affected?";
 	public static final String WORK_REQ_EXPRESSION		= "workRequiredExpression";
+	
+	// Workfront Errors
+	public static final String RECORD_NOT_FOUND			= "exception.norecordfound";
 	
 	// Workfront Modifiers
 	public static final String JIRA_ISSUENUM_MOD		= "DE:Jira Issue Number_Mod";

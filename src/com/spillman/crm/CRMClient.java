@@ -43,4 +43,29 @@ public class CRMClient {
 		Opportunity opportunity = sqlClient.getOpportunity(o.getCrmOpportunityID());
 		return logger.exit(opportunity);
 	}
+	
+	public Integer getCombinedProbability(List<String> oppIDs) throws CRMException {
+		List<Opportunity> opps = sqlClient.getOpportunities(oppIDs);
+		
+		if (opps.size() == 1) {
+			return opps.get(0).getProbability();
+		}
+		
+		int setSize = opps.size();
+		int sumProbability = 0;
+		
+		for (Opportunity o : opps) {
+			sumProbability += o.getProbability();
+		}
+		
+		/*
+		 * The formula for the combined probability - the probability that at least one
+		 * of the opportunities will happen - is: 
+		 * 
+		 * opportunity_1_probability + ... + opportunity_n_probability - probability all opportunities will happen
+		 */
+		//TODO: This formula isn't right.
+		int combinedProbability = (int)((double)sumProbability - (sumProbability / setSize));
+		return Math.min(100, combinedProbability);
+	}
 }

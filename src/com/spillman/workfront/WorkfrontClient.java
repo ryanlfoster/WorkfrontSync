@@ -1,6 +1,5 @@
 package com.spillman.workfront;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +35,14 @@ public class WorkfrontClient {
 		Workfront.PROGRAM_NAME,
 		Workfront.URL,
 		Workfront.VERSIONS,
+		Workfront.ADDITIONAL_OPPORTUNITIES,
+		Workfront.OPPORTUNITY_NAME,
+		Workfront.OPPORTUNITY_PROBABILITY,
+		Workfront.OPPORTUNITY_FLAG,
+		Workfront.OPPORTUNITY_PHASE,
+		Workfront.OPPORTUNITY_POSITION,
+		Workfront.OPPORTUNITY_STATE,
+		Workfront.COMBINED_PROBABILITY,
 		Workfront.SYNC_WITH_JIRA,
 		Workfront.LAST_JIRA_SYNC
 	};
@@ -44,12 +51,14 @@ public class WorkfrontClient {
 		Workfront.ID,
 		Workfront.NAME,
 		Workfront.STATUS,
+		Workfront.ADDITIONAL_OPPORTUNITIES,
 		Workfront.OPPORTUNITY_NAME,
 		Workfront.OPPORTUNITY_PROBABILITY,
 		Workfront.OPPORTUNITY_FLAG,
 		Workfront.OPPORTUNITY_PHASE,
 		Workfront.OPPORTUNITY_POSITION,
-		Workfront.OPPORTUNITY_STATE
+		Workfront.OPPORTUNITY_STATE,
+		Workfront.COMBINED_PROBABILITY
 	};
 	
 	private final static String[] TASK_FIELDS = new String[] {
@@ -80,6 +89,8 @@ public class WorkfrontClient {
 	private String accountNameFieldID		= null;
 	private String paramOpportunityName		= null;
 	private String opportunityNameFieldID	= null;
+	private String paramAddtlOpportunities	= null;
+	private String addtlOpportunitiesFieldID= null;
 	private String paramPilotAgency			= null;
 	private String pilotAgencyFieldID		= null;
 	private String newRequestProjectID		= null;
@@ -114,6 +125,11 @@ public class WorkfrontClient {
 			throw new WorkfrontException("Workfront Opportunity Name parameter cannot be null");
 		}
 		
+		String addtlOpportunities = props.getWorkfrontAdditionalOpportunitiesParam();
+		if (addtlOpportunities == null) {
+			throw new WorkfrontException("Workfront Additional Opportunities parameter cannot be null");
+		}
+		
 		String pilotAgency = props.getWorkfrontPilotAgencyParam();
 		if (pilotAgency == null) {
 			throw new WorkfrontException("Workfront Pilot Agency parameter cannot be null");
@@ -131,6 +147,7 @@ public class WorkfrontClient {
 		this.paramOpportunityName = opportunityName;
 		this.newRequestProjectID = newRequestProjectID;
 		this.paramPilotAgency = pilotAgency;
+		this.paramAddtlOpportunities = addtlOpportunities;
 		
 		logger.exit();
 	}
@@ -152,6 +169,7 @@ public class WorkfrontClient {
 			accountNameFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, paramAccountName);
 			opportunityNameFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, paramOpportunityName);
 			pilotAgencyFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, paramPilotAgency);
+			addtlOpportunitiesFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, paramAddtlOpportunities);
 		} catch (JSONException e) {
 			throw new WorkfrontException(e);
 		} catch (StreamClientException e) {
@@ -172,7 +190,7 @@ public class WorkfrontClient {
 		
 		for (Account account : accounts) {
 			addParameterOption(accountNameFieldID, account.accountGUID, account.accountName);
-			logger.trace("Added account {}.", account);
+			logger.debug("Added account {}.", account);
 		}
 
 		logger.exit();
@@ -183,7 +201,7 @@ public class WorkfrontClient {
 		
 		for (Account account : accounts) {
 			addParameterOption(pilotAgencyFieldID, account.agencyCode, account.agencyCode);
-			logger.trace("Added pilot agency {}.", account.agencyCode);
+			logger.debug("Added pilot agency {}.", account.agencyCode);
 		}
 
 		logger.exit();
@@ -208,13 +226,30 @@ public class WorkfrontClient {
 		
 		return logger.exit(accounts);
 	}
+	
+	public void copyOpportunities() throws WorkfrontException {
+		String[] fields = new String[] {Workfront.ID, Workfront.VALUE, Workfront.LABEL};
+
+		try {
+			JSONArray results = getObjects(Workfront.OBJCODE_POPT, Workfront.PARAMETER_ID, opportunityNameFieldID, fields);
+			for (int i = 0; i < results.length(); i++) {
+				JSONObject opportunity = (JSONObject)results.get(i);
+				addParameterOption(addtlOpportunitiesFieldID, opportunity.getString(Workfront.VALUE), opportunity.getString(Workfront.LABEL));
+				logger.debug("Added opportunity {}", opportunity.getString(Workfront.LABEL));
+			}
+		} catch (StreamClientException | JSONException e) {
+			throw new WorkfrontException(e);
+		}
+		
+	}
 
 	public void addOpportunities(List<Opportunity> opportunities) throws WorkfrontException {
 		logger.entry(opportunities);
 		
 		for (Opportunity opportunity : opportunities) {
 			addParameterOption(opportunityNameFieldID, opportunity.getCrmOpportunityID(), opportunity.getName());
-			logger.trace("Added opportunity {}.", opportunity);
+			addParameterOption(addtlOpportunitiesFieldID, opportunity.getCrmOpportunityID(), opportunity.getName());
+			logger.debug("Added opportunity {}.", opportunity);
 		}
 
 		logger.exit();
@@ -250,16 +285,18 @@ public class WorkfrontClient {
 	}
 	
 	private boolean opportunityIsReferencedByProject(Opportunity opp) throws WorkfrontException {
-		return opportunityIsReferencedBy(Workfront.OBJCODE_PROJ, opp);
+		return opportunityIsReferencedBy(Workfront.OBJCODE_PROJ, Workfront.OPPORTUNITY_NAME, opp)
+				|| opportunityIsReferencedBy(Workfront.OBJCODE_PROJ, Workfront.ADDITIONAL_OPPORTUNITIES, opp);
 	}
 	
 	private boolean opportunityIsReferencedByRequest(Opportunity opp) throws WorkfrontException {
-		return opportunityIsReferencedBy(Workfront.OBJCODE_ISSUE, opp);
+		return opportunityIsReferencedBy(Workfront.OBJCODE_ISSUE, Workfront.OPPORTUNITY_NAME, opp)
+				|| opportunityIsReferencedBy(Workfront.OBJCODE_ISSUE, Workfront.ADDITIONAL_OPPORTUNITIES, opp);
 	}
 	
-	private boolean opportunityIsReferencedBy(String objcode, Opportunity opp) throws WorkfrontException {
+	private boolean opportunityIsReferencedBy(String objcode, String param, Opportunity opp) throws WorkfrontException {
 		Map<String, Object> map = new HashMap<String, Object>();
-		map.put(Workfront.OPPORTUNITY_NAME, opp.getCrmOpportunityID());
+		map.put(param, opp.getCrmOpportunityID());
 		try {
 			JSONArray results = client.search(objcode, map);
 			return results.length() > 0;
@@ -371,15 +408,17 @@ public class WorkfrontClient {
 		logger.exit();
 	}
 
-	public void updateOpportunityStatus(Request request,	Opportunity curopp) throws WorkfrontException {
+	public void updateOpportunityStatus(Request request, Opportunity curopp) throws WorkfrontException {
 		logger.entry(request, curopp);
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put(Workfront.OPPORTUNITY_FLAG, curopp.getFlag());
 		map.put(Workfront.OPPORTUNITY_PHASE, curopp.getPhase());
 		map.put(Workfront.OPPORTUNITY_POSITION, curopp.getPosition());
 		map.put(Workfront.OPPORTUNITY_PROBABILITY, curopp.getProbability());
+		map.put(Workfront.COMBINED_PROBABILITY, request.getCombinedProbability());
 		map.put(Workfront.OPPORTUNITY_STATE, curopp.getState());
 		try {
+			logger.debug("Updating opportunity status {}", map.toString());
 			client.put(Workfront.OBJCODE_ISSUE, request.getWorkfrontRequestID(), map);
 		} catch (StreamClientException e) {
 			throw new WorkfrontException(e);
@@ -432,16 +471,39 @@ public class WorkfrontClient {
 				String status = request.getString(Workfront.STATUS);
 				String name = request.getString(Workfront.NAME);
 				
-				// If the request is not Closed and it isn't already in the list of projects, add it
-				if (!activeRequests.containsKey(requestID) && !status.equals(Workfront.STATUS_CLOSED)) {
-					Request r = new Request(request);
-					activeRequests.put(r.getWorkfrontRequestID(), r);
-					logger.debug("Added request {} ({}) to the list of requests to sync", name, requestID);
+				// If the request IS NOT in the list...
+				if (!activeRequests.containsKey(requestID)) {
+					
+					// and it doesn't have a Closed status...
+					if (!status.equals(Workfront.STATUS_CLOSED)) {
+						
+						// add the request to the list
+						Request r = new Request(request);
+						activeRequests.put(r.getWorkfrontRequestID(), r);
+						logger.debug("Added request {} ({}) to the list of requests to sync", name, requestID);
+					}
+					
+					// otherwise, ignore it
 				}
-				// If the request is in the list and the status is Closed, remove it
-				else if(activeRequests.containsKey(requestID) && (status.equals(Workfront.STATUS_CLOSED))) {
-					activeRequests.remove(requestID);
-					logger.debug("Removed request {} ({}) from the list of requests to sync", name, requestID);
+				
+				// If the request IS in the list...
+				else if (activeRequests.containsKey(requestID)) { 
+					
+					// and the status is closed...
+					if(status.equals(Workfront.STATUS_CLOSED)) {
+						//TODO: Will we ever see this case if the requests are deleted
+						// when they are converted to a project? I don't think so. Will
+						// need to find a new way to trim the list of requests.
+						
+						// remove the request from the list
+						activeRequests.remove(requestID);
+						logger.debug("Removed request {} ({}) from the list of requests to sync", name, requestID);
+					}
+					
+					// otherwise, update the request in the list with new values
+					else {
+						activeRequests.get(requestID).setOpportunities(request);
+					}
 				}
 			} catch (JSONException e) {
 				throw new WorkfrontException(e);
@@ -731,8 +793,8 @@ public class WorkfrontClient {
 		}
 		
 		else if (lastUpdateStart != null && lastUpdateEnd != null) {
-			search.put(Workfront.LAST_UPDATE_DATE, Workfront.dateFormatter.format(lastUpdateStart));
-			search.put(Workfront.LAST_UPDATE_DATE_RANGE, Workfront.dateFormatter.format(lastUpdateEnd));
+			search.put(Workfront.LAST_UPDATE_DATE, Workfront.dateFormatterTZ.format(lastUpdateStart));
+			search.put(Workfront.LAST_UPDATE_DATE_RANGE, Workfront.dateFormatterTZ.format(lastUpdateEnd));
 			search.put(Workfront.LAST_UPDATE_DATE_MOD, Workfront.MOD_BETWEEN);
 		}
 		
