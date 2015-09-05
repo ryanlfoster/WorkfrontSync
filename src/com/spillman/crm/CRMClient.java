@@ -47,25 +47,34 @@ public class CRMClient {
 	public Integer getCombinedProbability(List<String> oppIDs) throws CRMException {
 		List<Opportunity> opps = sqlClient.getOpportunities(oppIDs);
 		
-		if (opps.size() == 1) {
-			return opps.get(0).getProbability();
-		}
-		
-		int setSize = opps.size();
-		int sumProbability = 0;
-		
-		for (Opportunity o : opps) {
-			sumProbability += o.getProbability();
-		}
-		
 		/*
 		 * The formula for the combined probability - the probability that at least one
-		 * of the opportunities will happen - is: 
+		 * of the opportunities will happen - is:
 		 * 
-		 * opportunity_1_probability + ... + opportunity_n_probability - probability all opportunities will happen
+		 *   combined_probability (cp) = 1 - the probability that none of them will happen
+		 *   
+		 * The probability that an opportunity will be lost is:
+		 * 
+		 *    probability_lose (pl) = 1 - the probability the opportunity will be won 
+		 * 
+		 * The probability that all the opportunities will be lost is:
+		 * 
+		 *   probablity_lose_all (pla) = pl_1 X pl_2 X ... X pl_n
+		 * 
 		 */
-		//TODO: This formula isn't right.
-		int combinedProbability = (int)((double)sumProbability - (sumProbability / setSize));
-		return Math.min(100, combinedProbability);
+
+		int setSize = opps.size();
+		double pla = 1.0;
+		
+		for (Opportunity o : opps) {
+			// convert probability to a decimal
+			double pw = (double)o.getProbability() / 100.0;
+			double pl = 1 - pw;
+			pla = pla * pl;
+		}
+		
+		double cp = 1 - pla;
+		
+		return (int)(cp * 100);
 	}
 }
