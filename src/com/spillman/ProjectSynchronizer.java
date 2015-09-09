@@ -128,8 +128,8 @@ public class ProjectSynchronizer {
 
 			currentTimestamp = new Date();
 
-//			synchronizeCustomFields(lastSyncTimestamp, currentTimestamp);
-//			synchronizeProjects(lastSyncTimestamp, currentTimestamp);
+			synchronizeCustomFields(lastSyncTimestamp, currentTimestamp);
+			synchronizeProjects(lastSyncTimestamp, currentTimestamp);
 			syncrhonizeRequests(lastSyncTimestamp, currentTimestamp);
 			
 			lastSyncTimestamp = currentTimestamp;
@@ -252,12 +252,9 @@ public class ProjectSynchronizer {
 			activeProjects = workfrontClient.updateProjectList(activeProjects, lastSyncTimestamp, currentSyncTimestamp);
 			
 			for (Project project : activeProjects.values()) {
-				if (project.hasJiraProjectID()) {
-					logger.debug("Syncing project '{}'...", project.getName());
-					syncTasks(project, lastSyncTimestamp, currentSyncTimestamp);
-					syncWorkLog(project, currentSyncTimestamp);
-				}
-				else {
+				
+				// Add new projects to Jira
+				if (!project.hasJiraProjectID()) {
 					logger.debug("Creating project '{}' in Jira...", project.getName());
 					project.setJiraDevTeam(properties.lookupDevTeam(project.getWorkfrontProgram()));
 					if (project.getVersions() == null) 
@@ -268,6 +265,14 @@ public class ProjectSynchronizer {
 					jiraClient.addProjectToJira(project);
 					workfrontClient.updateJiraProjectID(project);
 				}
+
+				// Sync Jira issues and worklog with Workfront
+				logger.debug("Syncing project '{}'...", project.getName());
+				syncTasks(project, lastSyncTimestamp, currentSyncTimestamp);
+				syncWorkLog(project, currentSyncTimestamp);
+				
+				// TODO: Sync opportunity status (if the probability isn't already 100%, 
+				//       or if the primary opportunity has changed)
 			}
 		}
 		catch (WorkfrontException e) {

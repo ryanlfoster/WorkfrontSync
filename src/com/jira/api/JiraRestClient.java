@@ -84,20 +84,20 @@ public class JiraRestClient {
 		}
 	}
 
-	public Task createEpic(String jiraProjectID, String name) throws JiraRestAPIException {
+	public Task createEpic(String jiraProjectID, String devteam, String name) throws JiraRestAPIException {
 		Task task = new Task();
 		task.setName(name);
 		task.setJiraIssueType(epicIssueType);
 		task.setDuration(0.0);
-		createIssue(jiraProjectID, task);
+		createIssue(jiraProjectID, devteam, task);
 		return task;
 	}
 	
-	public void createIssue(String jiraProjectID, Task task) throws JiraRestAPIException {
+	public void createIssue(String jiraProjectID, String devteam, Task task) throws JiraRestAPIException {
 		// Create the issue
 		String params;
 		try {
-			params = formatParameters(jiraProjectID, task);
+			params = formatParameters(jiraProjectID, devteam, task);
 		} catch (JiraRestAPIException e) {
 			logger.catching(e);
 			return;
@@ -136,7 +136,7 @@ public class JiraRestClient {
 		return true;
 	}
 	
-	private String formatParameters(String jiraProjectID, Task task) throws JiraRestAPIException {
+	private String formatParameters(String jiraProjectID, String devteam, Task task) throws JiraRestAPIException {
 		HashMap<String, Object> project = new HashMap<String, Object>();
 		project.put(Jira.JSON_ID, jiraProjectID);
 
@@ -150,6 +150,7 @@ public class JiraRestClient {
 		fields.put(Jira.JSON_PROJECT, project);
 		fields.put(Jira.JSON_SUMMARY, task.getName());
 		fields.put(Jira.JSON_ISSUE_TYPE, issueType);
+		fields.put(Jira.JSON_DEV_TEAM, devteam);
 
 		if (task.getJiraIssueType().equals(epicIssueType)) {
 			// Creating an Epic type issue requires the epic name

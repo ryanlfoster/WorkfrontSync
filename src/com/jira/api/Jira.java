@@ -41,6 +41,7 @@ public class Jira {
 	public static final String JSON_ISSUE_TYPE					= "issuetype";
 	public static final String JSON_EPIC_NAME					= "customfield_13363";
 	public static final String JSON_DESCRIPTION					= "description";
+	public static final String JSON_DEV_TEAM					= "customfield_10040";
 	public static final String JSON_SUMMARY						= "summary";
 	public static final String JSON_FIELDS						= "fields";
 	public static final String JSON_KEY							= "key";

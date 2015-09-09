@@ -32,6 +32,7 @@ public class JiraClient {
 	private JiraRestClient restClient;
 	private String jiraBrowseUrl;
 	private String epicIssueType;
+	private SyncProperties properties;
 	private HashMap<String,String> programPrefix;
 	
 	public JiraClient(SyncProperties props) throws JiraException {
@@ -45,6 +46,7 @@ public class JiraClient {
 		this.jiraBrowseUrl = props.getJiraBrowseUrl();
 		this.programPrefix = props.getProgramPrefixMap();
 		this.epicIssueType = props.getJiraEpicIssueType();
+		this.properties = props;
 		
 		logger.exit();
 	}
@@ -54,9 +56,10 @@ public class JiraClient {
 	}
 	
 	public Task createIssue(Project project, Task task) throws JiraException {
+		String devteam = getJiraDevTeam(project);
 		try {
 			// Create an issue in Jira for this task
-			restClient.createIssue(project.getJiraProjectID(), task); 
+			restClient.createIssue(project.getJiraProjectID(), devteam, task); 
 		} catch (JiraRestAPIException e) {
 			throw new JiraException(e);
 		}
@@ -77,7 +80,7 @@ public class JiraClient {
 			try {
 				// If we couldn't find the epic add the epic to Jira
 				if (epicKey == null) {
-					Task t = restClient.createEpic(project.getJiraProjectID(), task.getJiraEpicName());
+					Task t = restClient.createEpic(project.getJiraProjectID(), devteam, task.getJiraEpicName());
 					epicKey = t.getJiraIssueKey();
 				}
 				
@@ -89,6 +92,15 @@ public class JiraClient {
 		}
 		
 		return task;
+	}
+
+	private String getJiraDevTeam(Project project) throws JiraException {
+		String devteam = properties.lookupDevTeam(project.getWorkfrontProgram());
+		if (devteam == null) {
+			logger.error("Unable to create Jira issue because no dev team for program '{}' could be found", project.getWorkfrontProgram());
+			throw new JiraException("Unable to create Jira issue because no dev team could be found for program " + project.getWorkfrontProgram());
+		}
+		return devteam;
 	}
 
 	public ArrayList<WorkLog> getWorkLogEntries(Project project, Date startTime, Date endTime) throws JiraException {
