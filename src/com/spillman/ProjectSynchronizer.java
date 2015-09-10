@@ -2,16 +2,9 @@ package com.spillman;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.Objects;
-
-import javax.swing.event.ListSelectionEvent;
-
 import com.spillman.common.Account;
 import com.spillman.common.Opportunity;
 import com.spillman.common.Project;
@@ -20,7 +13,6 @@ import com.spillman.common.Task;
 import com.spillman.common.WorkLog;
 import com.spillman.crm.CRMClient;
 import com.spillman.crm.CRMException;
-import com.spillman.jira.Jira;
 import com.spillman.jira.JiraClient;
 import com.spillman.jira.JiraException;
 import com.spillman.jira.JiraIssueNotFoundException;

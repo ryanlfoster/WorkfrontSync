@@ -1,7 +1,5 @@
 package com.spillman.jira;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -305,25 +303,5 @@ public class JiraClient {
 		}
 		
 		return projectKey;
-	}
-
-	private ArrayList<WorkLog> processWorkLogEntries(ResultSet rs) throws SQLException {
-		logger.entry(rs);
-		
-		ArrayList<WorkLog> worklog = new ArrayList<WorkLog>();
-		
-		while (rs.next()) {
-			WorkLog wl = new WorkLog();
-			wl.setDateWorked(rs.getTimestamp(Jira.DATE_WORKED));
-			wl.setDescription(rs.getString(Jira.DESCRIPTION));
-			wl.setHoursWorked(rs.getDouble(Jira.HOURS_WORKED));
-			wl.setJiraIssuenum(rs.getString(Jira.ISSUENUM));
-			wl.setJiraWorker(rs.getString(Jira.WORKER));
-			wl.setEpicIssuenum(rs.getString(Jira.EPIC_ID));
-			wl.setJiraIssueUrl(jiraBrowseUrl + rs.getString(Jira.ISSUE_KEY));
-			worklog.add(wl);
-		}
-		
-		return logger.exit(worklog);
 	}
 }

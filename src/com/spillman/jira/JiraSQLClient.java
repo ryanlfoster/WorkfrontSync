@@ -4,16 +4,11 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.spillman.common.Account;
 import com.spillman.common.Task;
 import com.spillman.common.WorkLog;
 
 public class JiraSQLClient {
-	private static final Logger logger = LogManager.getLogger();
-
 	private final static String EPICS_QUERY = 
 			"SELECT PROJECT, Epic_ID, Epic_Issuenum, Epic_Name, Epic_Status, Epic_Estimate, Total_Time_Spent, Total_Story_Points, "
 			+ "Total_Subtasks_Time_Spent, Total_Time_Spent_Closed, Total_Story_Points_Closed, Total_Subtasks_Time_Spent_Closed, IssueKey, IssueType "

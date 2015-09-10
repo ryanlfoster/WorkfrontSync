@@ -63,7 +63,6 @@ public class CRMClient {
 		 * 
 		 */
 
-		int setSize = opps.size();
 		double pla = 1.0;
 		
 		for (Opportunity o : opps) {

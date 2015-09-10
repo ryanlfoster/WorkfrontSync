@@ -6,7 +6,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -21,7 +20,6 @@ import javax.net.ssl.SSLSession;
 import org.apache.axis.encoding.Base64;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -146,11 +144,14 @@ public class JiraRestClient {
 		}
 		issueType.put(Jira.JSON_ID, issueTypes.get(task.getJiraIssueType()));
 		
+		HashMap<String, Object> team = new HashMap<String, Object>();
+		team.put(Jira.JSON_VALUE, devteam);
+		
 		HashMap<String, Object> fields = new HashMap<String, Object>();
 		fields.put(Jira.JSON_PROJECT, project);
 		fields.put(Jira.JSON_SUMMARY, task.getName());
 		fields.put(Jira.JSON_ISSUE_TYPE, issueType);
-		fields.put(Jira.JSON_DEV_TEAM, devteam);
+		fields.put(Jira.JSON_DEV_TEAM, team);
 
 		if (task.getJiraIssueType().equals(epicIssueType)) {
 			// Creating an Epic type issue requires the epic name
