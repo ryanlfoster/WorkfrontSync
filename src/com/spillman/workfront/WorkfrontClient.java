@@ -35,8 +35,8 @@ public class WorkfrontClient {
 		Workfront.PROGRAM_NAME,
 		Workfront.URL,
 		Workfront.VERSIONS,
-		Workfront.ADDITIONAL_OPPORTUNITIES,
-		Workfront.OPPORTUNITY_NAME,
+		Workfront.OPPORTUNITIES,
+		Workfront.LEAD_OPPORTUNITY,
 		Workfront.OPPORTUNITY_PROBABILITY,
 		Workfront.OPPORTUNITY_FLAG,
 		Workfront.OPPORTUNITY_PHASE,
@@ -51,8 +51,8 @@ public class WorkfrontClient {
 		Workfront.ID,
 		Workfront.NAME,
 		Workfront.STATUS,
-		Workfront.ADDITIONAL_OPPORTUNITIES,
-		Workfront.OPPORTUNITY_NAME,
+		Workfront.OPPORTUNITIES,
+		Workfront.LEAD_OPPORTUNITY,
 		Workfront.OPPORTUNITY_PROBABILITY,
 		Workfront.OPPORTUNITY_FLAG,
 		Workfront.OPPORTUNITY_PHASE,
@@ -85,13 +85,9 @@ public class WorkfrontClient {
 	private String portfolioName 			= null;
 	private String jiraTaskCustomFormID 	= null;
 	private String jiraTaskCustomFormName	= null;
-	private String paramAccountName			= null;
 	private String accountNameFieldID		= null;
-	private String paramOpportunityName		= null;
-	private String opportunityNameFieldID	= null;
-	private String paramAddtlOpportunities	= null;
-	private String addtlOpportunitiesFieldID= null;
-	private String paramPilotAgency			= null;
+	private String leadOpportunityFieldID	= null;
+	private String opportunitiesFieldID		= null;
 	private String pilotAgencyFieldID		= null;
 	private String newRequestProjectID		= null;
 	private HashMap<String, String> users	= null;
@@ -115,26 +111,6 @@ public class WorkfrontClient {
 			throw new WorkfrontException("Workfront Jira task template name cannot be null");
 		}
 		
-		String accountName = props.getWorkfrontAccountNameParam();
-		if (accountName == null) {
-			throw new WorkfrontException("Workfront Account Name cannot be null");
-		}
-		
-		String opportunityName = props.getWorkfrontOpportunityNameParam();
-		if (opportunityName == null) {
-			throw new WorkfrontException("Workfront Opportunity Name parameter cannot be null");
-		}
-		
-		String addtlOpportunities = props.getWorkfrontAdditionalOpportunitiesParam();
-		if (addtlOpportunities == null) {
-			throw new WorkfrontException("Workfront Additional Opportunities parameter cannot be null");
-		}
-		
-		String pilotAgency = props.getWorkfrontPilotAgencyParam();
-		if (pilotAgency == null) {
-			throw new WorkfrontException("Workfront Pilot Agency parameter cannot be null");
-		}
-		
 		String newRequestProjectID = props.getWorkfrontNewProjectRequestProejctID();
 		if (newRequestProjectID == null) {
 			throw new WorkfrontException("Workfront New Project Request Project ID parameter cannot be null");
@@ -143,11 +119,7 @@ public class WorkfrontClient {
 		this.client = new StreamClient(url);
 		this.portfolioName = portfolio;
 		this.jiraTaskCustomFormName = jiraTask;
-		this.paramAccountName = accountName;
-		this.paramOpportunityName = opportunityName;
 		this.newRequestProjectID = newRequestProjectID;
-		this.paramPilotAgency = pilotAgency;
-		this.paramAddtlOpportunities = addtlOpportunities;
 		
 		logger.exit();
 	}
@@ -166,10 +138,10 @@ public class WorkfrontClient {
 			portfolioID = getPortfolioID();
 			jiraTaskCustomFormID = getJiraTaskCustomFormID();
 			users = getWorkfrontUsers();
-			accountNameFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, paramAccountName);
-			opportunityNameFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, paramOpportunityName);
-			pilotAgencyFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, paramPilotAgency);
-			addtlOpportunitiesFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, paramAddtlOpportunities);
+			accountNameFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, Workfront.PARAM_ACCOUNT_NAME);
+			leadOpportunityFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, Workfront.PARAM_LEAD_OPPORTUNITY);
+			pilotAgencyFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, Workfront.PARAM_PILOT_AGENCY);
+			opportunitiesFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, Workfront.PARAM_OPPORTUNITIES);
 		} catch (JSONException e) {
 			throw new WorkfrontException(e);
 		} catch (StreamClientException e) {
@@ -231,10 +203,10 @@ public class WorkfrontClient {
 		String[] fields = new String[] {Workfront.ID, Workfront.VALUE, Workfront.LABEL};
 
 		try {
-			JSONArray results = getObjects(Workfront.OBJCODE_POPT, Workfront.PARAMETER_ID, opportunityNameFieldID, fields);
+			JSONArray results = getObjects(Workfront.OBJCODE_POPT, Workfront.PARAMETER_ID, leadOpportunityFieldID, fields);
 			for (int i = 0; i < results.length(); i++) {
 				JSONObject opportunity = (JSONObject)results.get(i);
-				addParameterOption(addtlOpportunitiesFieldID, opportunity.getString(Workfront.VALUE), opportunity.getString(Workfront.LABEL));
+				addParameterOption(opportunitiesFieldID, opportunity.getString(Workfront.VALUE), opportunity.getString(Workfront.LABEL));
 				logger.debug("Added opportunity {}", opportunity.getString(Workfront.LABEL));
 			}
 		} catch (StreamClientException | JSONException e) {
@@ -247,8 +219,8 @@ public class WorkfrontClient {
 		logger.entry(opportunities);
 		
 		for (Opportunity opportunity : opportunities) {
-			addParameterOption(opportunityNameFieldID, opportunity.getCrmOpportunityID(), opportunity.getName());
-			addParameterOption(addtlOpportunitiesFieldID, opportunity.getCrmOpportunityID(), opportunity.getName());
+			addParameterOption(leadOpportunityFieldID, opportunity.getCrmOpportunityID(), opportunity.getName());
+			addParameterOption(opportunitiesFieldID, opportunity.getCrmOpportunityID(), opportunity.getName());
 			logger.debug("Added opportunity {}.", opportunity);
 		}
 
@@ -285,13 +257,13 @@ public class WorkfrontClient {
 	}
 	
 	private boolean opportunityIsReferencedByProject(Opportunity opp) throws WorkfrontException {
-		return opportunityIsReferencedBy(Workfront.OBJCODE_PROJ, Workfront.OPPORTUNITY_NAME, opp)
-				|| opportunityIsReferencedBy(Workfront.OBJCODE_PROJ, Workfront.ADDITIONAL_OPPORTUNITIES, opp);
+		return opportunityIsReferencedBy(Workfront.OBJCODE_PROJ, Workfront.LEAD_OPPORTUNITY, opp)
+				|| opportunityIsReferencedBy(Workfront.OBJCODE_PROJ, Workfront.OPPORTUNITIES, opp);
 	}
 	
 	private boolean opportunityIsReferencedByRequest(Opportunity opp) throws WorkfrontException {
-		return opportunityIsReferencedBy(Workfront.OBJCODE_ISSUE, Workfront.OPPORTUNITY_NAME, opp)
-				|| opportunityIsReferencedBy(Workfront.OBJCODE_ISSUE, Workfront.ADDITIONAL_OPPORTUNITIES, opp);
+		return opportunityIsReferencedBy(Workfront.OBJCODE_ISSUE, Workfront.LEAD_OPPORTUNITY, opp)
+				|| opportunityIsReferencedBy(Workfront.OBJCODE_ISSUE, Workfront.OPPORTUNITIES, opp);
 	}
 	
 	private boolean opportunityIsReferencedBy(String objcode, String param, Opportunity opp) throws WorkfrontException {
@@ -417,9 +389,30 @@ public class WorkfrontClient {
 		map.put(Workfront.OPPORTUNITY_PROBABILITY, curopp.getProbability());
 		map.put(Workfront.COMBINED_PROBABILITY, request.getCombinedProbability());
 		map.put(Workfront.OPPORTUNITY_STATE, curopp.getState());
+		map.put(Workfront.LEAD_OPPORTUNITY, curopp.getCrmOpportunityID());
 		try {
 			logger.debug("Updating opportunity status {}", map.toString());
 			client.put(Workfront.OBJCODE_ISSUE, request.getWorkfrontRequestID(), map);
+		} catch (StreamClientException e) {
+			throw new WorkfrontException(e);
+		}
+		
+		logger.exit();
+	}
+
+	public void updateOpportunityStatus(Project project, Opportunity curopp) throws WorkfrontException {
+		logger.entry(project, curopp);
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put(Workfront.OPPORTUNITY_FLAG, curopp.getFlag());
+		map.put(Workfront.OPPORTUNITY_PHASE, curopp.getPhase());
+		map.put(Workfront.OPPORTUNITY_POSITION, curopp.getPosition());
+		map.put(Workfront.OPPORTUNITY_PROBABILITY, curopp.getProbability());
+		map.put(Workfront.COMBINED_PROBABILITY, project.getCombinedProbability());
+		map.put(Workfront.OPPORTUNITY_STATE, curopp.getState());
+		map.put(Workfront.LEAD_OPPORTUNITY, curopp.getCrmOpportunityID());
+		try {
+			logger.debug("Updating opportunity status {}", map.toString());
+			client.put(Workfront.OBJCODE_PROJ, project.getWorkfrontProjectID(), map);
 		} catch (StreamClientException e) {
 			throw new WorkfrontException(e);
 		}

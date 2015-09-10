@@ -44,6 +44,22 @@ public class CRMClient {
 		return logger.exit(opportunity);
 	}
 	
+	public Opportunity getLeadingOpportunity(List<String> oppIDs) throws CRMException {
+		List<Opportunity> opps = sqlClient.getOpportunities(oppIDs);
+
+		Opportunity leadopp = null;
+		for (Opportunity o : opps) {
+			if (leadopp == null) {
+				leadopp = o;
+			}
+			else if (leadopp.compareTo(o) < 0) {
+				leadopp = o;
+			}
+		}
+		
+		return leadopp;
+	}
+	
 	public Integer getCombinedProbability(List<String> oppIDs) throws CRMException {
 		List<Opportunity> opps = sqlClient.getOpportunities(oppIDs);
 		

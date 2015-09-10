@@ -30,6 +30,9 @@ public class Project {
 	private String workfrontProgram;
 	private String url;
 	private List<String> versions;
+	private Opportunity opportunity;
+	private List<String> opportunityIDs;
+	private Integer combinedProbability;
 	private boolean syncWithJira;
 	private Date lastJiraSync;
 	private HashMap<String,Boolean> specialEpics;
@@ -45,38 +48,23 @@ public class Project {
 		setStatus(project.getString(Workfront.STATUS));
 		setOwner(project.getJSONObject(Workfront.OWNER).getString(Workfront.NAME));
 		setImplementationTaskID(null);
+		setJiraProjectID(project.getStringOrNull(Workfront.JIRA_PROJECT_ID));
+		setJiraProjectKey(project.getStringOrNull(Workfront.JIRA_PROJECT_KEY));
+		setDescription(project.getStringOrNull(Workfront.DESCRIPTION));
+		setURL(project.getStringOrNull(Workfront.URL));
+		setOpportunities(project);
+		if (!project.isNull(Workfront.COMBINED_PROBABILITY)) {
+			setCombinedProbability(project.getInt(Workfront.COMBINED_PROBABILITY));
+		}
+
 		this.wfDevTasks = new HashMap<String,Task>();
 		this.jiraDevTasks = new HashMap<String,Task>();
 		this.specialEpics = new HashMap<String,Boolean>();
 
-		if (project.isNull(Workfront.JIRA_PROJECT_ID)) {
-			setJiraProjectID(null);
-		} else {
-			setJiraProjectID(project.getString(Workfront.JIRA_PROJECT_ID));
-		}
-		
-		if (project.isNull(Workfront.JIRA_PROJECT_KEY)) {
-			setJiraProjectKey(null);
-		} else {
-			setJiraProjectKey(project.getString(Workfront.JIRA_PROJECT_KEY));
-		}
-		
-		if (project.isNull(Workfront.DESCRIPTION)) {
-			setDescription("");
-		} else {
-			setDescription(project.getString(Workfront.DESCRIPTION));
-		}
-		
 		if (project.isNull(Workfront.PROGRAM)) {
 			setWorkfrontProgram(null);
 		} else {
 			setWorkfrontProgram(project.getJSONObject(Workfront.PROGRAM).getString(Workfront.NAME));
-		}
-		
-		if (project.isNull(Workfront.URL)) {
-			setURL(null);
-		} else {
-			setURL(project.getString(Workfront.URL));
 		}
 		
 		if (project.isNull(Workfront.VERSIONS)) {
@@ -280,7 +268,53 @@ public class Project {
 	public void setJiraProjectKey(String jiraProjectKey) {
 		this.jiraProjectKey = jiraProjectKey;
 	}
+
+	public Integer getCombinedProbability() {
+		return combinedProbability;
+	}
+
+	public void setCombinedProbability(Integer combinedProbability) {
+		this.combinedProbability = combinedProbability;
+	}
+
+	public Opportunity getOpportunity() {
+		return opportunity;
+	}
+
+	public void setOpportunity(Opportunity opportunity) {
+		this.opportunity = opportunity;
+	}
 	
+	public List<String> getAllOpportunityIDs() {
+		return opportunityIDs;
+	}
+	
+	public void setOpportunities(JSONObject request) throws JSONException {
+		setOpportunity(new Opportunity(request));
+
+		// Add the ID of the primary opportunity to the list
+		opportunityIDs = new ArrayList<String>();
+		if (this.opportunity.getCrmOpportunityID() != null) {
+			opportunityIDs.add(this.opportunity.getCrmOpportunityID());
+		}
+		
+		// Add the IDs of additional opportunities to the list
+		if (request.has(Workfront.OPPORTUNITIES)) {
+			setOpportunityIDs(request.get(Workfront.OPPORTUNITIES));
+		}
+		
+	}
+	
+	private void setOpportunityIDs(Object object) throws JSONException {
+		if (object instanceof JSONArray) {
+			for (int i = 0; i < ((JSONArray)object).length(); i++) {
+				opportunityIDs.add(((JSONArray)object).getString(i));
+			}
+		} else if (object != JSONObject.NULL) {
+			opportunityIDs.add(object.toString());
+		}
+	}
+
 	private List<String> getArrayValues(JSONObject fields, String fieldName) {
 		try {
 			if (fields.has(fieldName) && !fields.isNull(fieldName)) {

@@ -15,8 +15,8 @@ public class OpportunityIDs {
 	public OpportunityIDs(JSONObject json) throws JSONException {
 		ids = new ArrayList<String>();
 		
-		if (json.has(Workfront.ADDITIONAL_OPPORTUNITIES)) {
-			Object object = json.get(Workfront.ADDITIONAL_OPPORTUNITIES);
+		if (json.has(Workfront.OPPORTUNITIES)) {
+			Object object = json.get(Workfront.OPPORTUNITIES);
 			if (object instanceof JSONArray) {
 				for (int i = 0; i < ((JSONArray)object).length(); i++) {
 					ids.add(((JSONArray)object).getString(i));

@@ -6,9 +6,10 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.spillman.crm.CRM;
 import com.spillman.workfront.Workfront;
 
-public class Opportunity {
+public class Opportunity implements Comparable<Opportunity>{
 	private String  name;
 	private String  crmOpportunityID;
 	private Integer probability;
@@ -26,8 +27,8 @@ public class Opportunity {
 	}
 	
 	public Opportunity(JSONObject request) throws JSONException {
-		this.name = request.getStringOrNull(Workfront.OPPORTUNITY_NAME);
-		this.crmOpportunityID = request.getStringOrNull(Workfront.OPPORTUNITY_NAME);
+		this.name = request.getStringOrNull(Workfront.LEAD_OPPORTUNITY);
+		this.crmOpportunityID = request.getStringOrNull(Workfront.LEAD_OPPORTUNITY);
 		this.flag = request.getStringOrNull(Workfront.OPPORTUNITY_FLAG);
 		this.phase = request.getStringOrNull(Workfront.OPPORTUNITY_PHASE);
 		this.position = request.getStringOrNull(Workfront.OPPORTUNITY_POSITION);
@@ -108,5 +109,45 @@ public class Opportunity {
 
 	public void setState(Integer state) {
 		this.state = state;
+	}
+
+	@Override
+	public int compareTo(Opportunity arg0) {
+		
+		// First, test the state
+		// If the state is the same and the state is either WON or LOST, the opportunities are equal
+		if (this.state.equals(arg0.getState()) && (this.state == CRM.STATE_WIN || this.state == CRM.STATE_LOSE)) {
+			return 0;
+		} 
+		// If the states are not the same, a WON opportunity is better
+		else if (this.state == CRM.STATE_WIN) {
+			return 1;
+		} else if (arg0.getState() == CRM.STATE_WIN){
+			return -1;
+		}
+		//If the states are not the same and neither opportunity is WON, then one of them must be LOST
+		else if (this.state == CRM.STATE_LOSE) {
+			return -1;
+		} else if (arg0.getState() == CRM.STATE_LOSE) {
+			return 1;
+		}
+		
+		// If we get to here, both opportunities have an OPEN status
+		// Next, test the probability
+		if (!this.probability.equals(arg0.getProbability())) {
+			return (this.probability > arg0.getProbability() ? 1 : -1);
+		}
+		
+		// If we get to here, the probabilities are equal
+		// Next, test the flag
+		if (!this.flag.equals(arg0.getFlag())) {
+			// ASSUMPTION: The flag (which is a string) starts with a number,
+			// for example "1 - Committed" or "2 - Back Up" or "3 - Other",
+			// and the lower the number the higher/better the flag
+			return (-1) * this.flag.compareTo(arg0.getFlag());
+		}
+
+		// If we get to here, the two opportunities are equal
+		return 0;
 	}
 }

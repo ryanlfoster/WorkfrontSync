@@ -37,12 +37,8 @@ public class SyncProperties extends Properties {
 	private static final String PROP_TIME_TO_SLEEP 				= "TimeToSleep";
 	
 	private static final String PROP_NEW_PROJECT_REQUEST_PROJECT_ID		= "Workfront.NewProjectRequestProjectID";
-	private static final String PROP_WORKFRONT_ACCOUNT_NAME_PARAM		= "Workfront.AccountNameParam";
-	private static final String PROP_WORKFRONT_ADDTL_OPPORTUNITIES_PARAM= "Workfront.AdditionalOpportunityNameParam";
 	private static final String PROP_WORKFRONT_APIKEY					= "Workfront.ApiKey";
 	private static final String PROP_WORKFRONT_DEV_PORTFOLIO			= "Workfront.DevPortfolio";
-	private static final String PROP_WORKFRONT_OPPORTUNITY_NAME_PARAM	= "Workfront.OpportunityNameParam";
-	private static final String PROP_WORKFRONT_PILOT_AGENCY_PARAM		= "Workfront.PilotAgencyParam";
 	private static final String PROP_WORKFRONT_PROGRAM_DEV_TEAM 		= "Workfront.ProgramDevTeamMap";
 	private static final String PROP_WORKFRONT_PROGRAM_PREFIXES 		= "Workfront.ProgramPrefixes";
 	private static final String PROP_WORKFRONT_URL						= "Workfront.Url";
@@ -66,22 +62,6 @@ public class SyncProperties extends Properties {
 	
 	public String getWorkfrontUsername() {
 		return this.getProperty(PROP_WORKFRONT_USERNAME);
-	}
-
-	public String getWorkfrontAccountNameParam() {
-		return this.getProperty(PROP_WORKFRONT_ACCOUNT_NAME_PARAM); 
-	}
-
-	public String getWorkfrontOpportunityNameParam() {
-		return this.getProperty(PROP_WORKFRONT_OPPORTUNITY_NAME_PARAM); 
-	}
-
-	public String getWorkfrontAdditionalOpportunitiesParam() {
-		return this.getProperty(PROP_WORKFRONT_ADDTL_OPPORTUNITIES_PARAM); 
-	}
-
-	public String getWorkfrontPilotAgencyParam() {
-		return this.getProperty(PROP_WORKFRONT_PILOT_AGENCY_PARAM); 
 	}
 
 	public String getWorkfrontApiKey() {

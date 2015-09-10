@@ -88,8 +88,8 @@ public class Request {
 		}
 		
 		// Add the IDs of additional opportunities to the list
-		if (request.has(Workfront.ADDITIONAL_OPPORTUNITIES)) {
-			setOpportunityIDs(request.get(Workfront.ADDITIONAL_OPPORTUNITIES));
+		if (request.has(Workfront.OPPORTUNITIES)) {
+			setOpportunityIDs(request.get(Workfront.OPPORTUNITIES));
 		}
 		
 	}

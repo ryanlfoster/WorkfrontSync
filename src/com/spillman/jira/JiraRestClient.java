@@ -272,7 +272,10 @@ public class JiraRestClient {
       "id": "10"
     },
     "description": "This is a short description",
-    "customfield_13363":"Epic 1 from API" 
+    "customfield_13363":"Epic 1 from API", 
+    "customfield_10040": {
+      "value":"Law"
+    }
   }
 }
 
@@ -298,7 +301,10 @@ public class JiraRestClient {
       "id": "31"
     },
     "description": "This is a short description",
-    "customfield_10553":8 
+    "customfield_10553":8, 
+    "customfield_10040": {
+      "value":"Law"
+    }
   }
 }
 
@@ -325,7 +331,10 @@ public class JiraRestClient {
     },
     "customfield_10290": [{
         "value":"AZPIMSO"
-      }]
+      }],
+    "customfield_10040": {
+      "value":"Law"
+    }
   }
 }
  *-------------------------------------------------------------------------

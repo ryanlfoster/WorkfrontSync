@@ -222,25 +222,27 @@ public class ProjectSynchronizer {
 
 	private static void syncRequest(Request request) throws CRMException, WorkfrontException {
 
-		// If the request has a CRM opportunity ID...
-		Opportunity opp = request.getOpportunity();
-		if (opp != null && opp.getCrmOpportunityID() != null && !opp.getCrmOpportunityID().isEmpty()) {
+		List<String> oppIDs = request.getAllOpportunityIDs();
+		
+		if (oppIDs.size() > 0) {
+			Opportunity curleadopp = request.getOpportunity();
+			Opportunity newleadopp = crmClient.getLeadingOpportunity(oppIDs);
+			Integer curProbability = request.getCombinedProbability();
+			Integer newProbability = crmClient.getCombinedProbability(oppIDs);
 			
-			Integer cp = crmClient.getCombinedProbability(request.getAllOpportunityIDs());
-			
-			// and the opportunity has changed...
-			Opportunity curopp = crmClient.getOpportunity(opp);
-			if (curopp != null && !opp.hasSameStatus(curopp) || !cp.equals(request.getCombinedProbability())) {
-				
-				// update the opportunity's status
-				request.setCombinedProbability(cp);
-				workfrontClient.updateOpportunityStatus(request, curopp);
+			if (curleadopp == null 
+					|| !curleadopp.getCrmOpportunityID().equals(newleadopp.getCrmOpportunityID())
+					|| !curProbability.equals(newProbability)) {
+				request.setCombinedProbability(newProbability);
+				workfrontClient.updateOpportunityStatus(request, newleadopp);
 			}
 		}
 	}
 
 	private static void synchronizeProjects(Date lastSyncTimestamp, Date currentSyncTimestamp) {
 		try {
+			// TODO: Now that we are synching opportunities on projects, we need to sync all projects
+			// that have an opportunity.
 			activeProjects = workfrontClient.updateProjectList(activeProjects, lastSyncTimestamp, currentSyncTimestamp);
 			
 			for (Project project : activeProjects.values()) {
@@ -262,9 +264,7 @@ public class ProjectSynchronizer {
 				logger.debug("Syncing project '{}'...", project.getName());
 				syncTasks(project, lastSyncTimestamp, currentSyncTimestamp);
 				syncWorkLog(project, currentSyncTimestamp);
-				
-				// TODO: Sync opportunity status (if the probability isn't already 100%, 
-				//       or if the primary opportunity has changed)
+				syncOpportunity(project);
 			}
 		}
 		catch (WorkfrontException e) {
@@ -273,7 +273,35 @@ public class ProjectSynchronizer {
 		} catch (JiraException e) {
 			logger.fatal("Experienced a Jira error", e);
 			System.exit(-1);
+		} catch (CRMException e) {
+			logger.fatal("Experienced a CRM error", e);
+			System.exit(-1);
 		}
+	}
+
+	private static void syncOpportunity(Project project) throws CRMException, WorkfrontException {
+		logger.entry(project);
+		
+		List<String> oppIDs = project.getAllOpportunityIDs();
+		
+		if (oppIDs.size() > 0) {
+			Opportunity curleadopp = project.getOpportunity();
+			Opportunity newleadopp = crmClient.getLeadingOpportunity(oppIDs);
+			Integer curProbability = project.getCombinedProbability();
+			Integer newProbability = crmClient.getCombinedProbability(oppIDs);
+			logger.debug("curleadopp: {}", curleadopp);
+			logger.debug("newleadopp: {}", newleadopp);
+			
+			if (curleadopp == null || curleadopp.getCrmOpportunityID() == null
+					|| !curleadopp.getCrmOpportunityID().equals(newleadopp.getCrmOpportunityID())
+					|| curProbability == null
+					|| !curProbability.equals(newProbability)) {
+				project.setCombinedProbability(newProbability);
+				workfrontClient.updateOpportunityStatus(project, newleadopp);
+			}
+		}
+		
+		logger.exit();
 	}
 
 	private static void syncWorkLog(Project project, Date currentSyncTimestamp) throws JiraException, WorkfrontException {

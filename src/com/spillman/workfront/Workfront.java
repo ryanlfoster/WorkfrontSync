@@ -15,9 +15,14 @@ public class Workfront {
 	public static final String OBJCODE_TASK	 			= "task";
 	public static final String OBJCODE_TEMPLATE 		= "template";
 	public static final String OBJCODE_USER	 			= "user";
+	
+	// Workfront Parameter Names
+	public static final String PARAM_ACCOUNT_NAME		= "Account Name";
+	public static final String PARAM_LEAD_OPPORTUNITY	= "Lead Opportunity";
+	public static final String PARAM_OPPORTUNITIES		= "Opportunities";
+	public static final String PARAM_PILOT_AGENCY		= "Pilot Agency";
 
 	// Workfront Fields
-	public static final String ADDITIONAL_OPPORTUNITIES	= "DE:Additional Opportunities";
 	public static final String ASSIGNED_TO_ID			= "assignedToID";
 	public static final String COMBINED_PROBABILITY		= "DE:Combined Probability";
 	public static final String CUSTOM_FORM_ID			= "categoryID";
@@ -41,10 +46,11 @@ public class Workfront {
 	public static final String LABEL					= "label";
 	public static final String LAST_JIRA_SYNC			= "DE:Last Jira Sync";
 	public static final String LAST_UPDATE_DATE			= "lastUpdateDate";
+	public static final String LEAD_OPPORTUNITY			= "DE:Lead Opportunity";
 	public static final String LIMIT					= "$$LIMIT";
 	public static final String NAME 					= "name";
+	public static final String OPPORTUNITIES			= "DE:Opportunities";
 	public static final String OPPORTUNITY_FLAG			= "DE:Flag Type";
-	public static final String OPPORTUNITY_NAME			= "DE:Opportunity Name";
 	public static final String OPPORTUNITY_PHASE		= "DE:Sales Phase";
 	public static final String OPPORTUNITY_POSITION		= "DE:Position";
 	public static final String OPPORTUNITY_PROBABILITY	= "DE:Probability";

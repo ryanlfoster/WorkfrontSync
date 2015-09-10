@@ -13,4 +13,8 @@ public class CRM {
 	public final static String OPPORTUNITY_FLAG 		= "Flag";
 	public final static String OPPORTUNITY_PROBABILITY	= "CloseProbability";
 	public final static String OPPORTUNITY_STATE		= "StateCode";
+	
+	public final static int STATE_WIN	= 1;
+	public final static int STATE_LOSE	= 2;
+	public final static int STATE_OPEN	= 0;
 }

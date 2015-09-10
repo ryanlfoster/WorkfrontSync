@@ -276,10 +276,15 @@ public class JiraSQLClient {
 			 Otherwise, calculate the percent complete as completed_story_points / total_story_points
 			 */
 			Double epicEstimate = rs.getDouble(Jira.EPIC_ESTIMATE);
+			if (rs.wasNull()) epicEstimate = 0.0;
 			Double totalStoryPoints = rs.getDouble(Jira.TOTAL_STORY_POINTS);
+			if (rs.wasNull()) totalStoryPoints = 0.0;
 			Double timeSpentClosedStories = rs.getDouble(Jira.TOTAL_TIME_SPENT_CLOSED);
+			if (rs.wasNull()) timeSpentClosedStories = 0.0;
 			Double storyPointsClosedStories = rs.getDouble(Jira.TOTAL_STORY_POINTS_CLOSED);
+			if (rs.wasNull()) storyPointsClosedStories = 0.0;
 			Double subtasksTimeSpentClosedStories = rs.getDouble(Jira.TOTAL_SUBTASKS_TIME_SPENT_CLOSED);
+			if (rs.wasNull()) subtasksTimeSpentClosedStories = 0.0;
 			
 			Double duration;
 			Double percentComplete;
