@@ -11,11 +11,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.jira.api.Jira;
-import com.jira.api.JiraIssueNotFoundException;
-import com.jira.api.JiraRestAPIException;
-import com.jira.api.JiraRestClient;
-import com.jira.api.JiraSQLClient;
 import com.spillman.SyncProperties;
 import com.spillman.common.Account;
 import com.spillman.common.Project;

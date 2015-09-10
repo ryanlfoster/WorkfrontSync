@@ -1,4 +1,4 @@
-package com.jira.api;
+package com.spillman.jira;
 
 public class Jira {
 	//SQL Fields

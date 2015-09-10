@@ -1,4 +1,4 @@
-package com.jira.api;
+package com.spillman.jira;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -10,7 +10,6 @@ import org.apache.logging.log4j.Logger;
 import com.spillman.common.Account;
 import com.spillman.common.Task;
 import com.spillman.common.WorkLog;
-import com.spillman.jira.JiraException;
 
 public class JiraSQLClient {
 	private static final Logger logger = LogManager.getLogger();

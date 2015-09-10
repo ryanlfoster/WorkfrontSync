@@ -1,6 +1,5 @@
-package com.jira.api;
+package com.spillman.jira;
 
-import com.spillman.jira.JiraException;
 
 @SuppressWarnings("serial")
 public class JiraIssueNotFoundException extends JiraException {

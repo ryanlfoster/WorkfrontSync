@@ -1,4 +1,4 @@
-package com.attask.api;
+package com.spillman.workfront.api;
 
 /*
  * Copyright (c) 2011 AtTask, Inc.

@@ -1,6 +1,6 @@
 package com.spillman.workfront;
 
-import com.attask.api.StreamClientException;
+import com.spillman.workfront.api.StreamClientException;
 
 @SuppressWarnings("serial")
 public class WorkfrontException extends Exception {

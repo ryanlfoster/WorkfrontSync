@@ -11,8 +11,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.attask.api.StreamClient;
-import com.attask.api.StreamClientException;
 import com.spillman.SyncProperties;
 import com.spillman.common.Account;
 import com.spillman.common.Opportunity;
@@ -20,6 +18,8 @@ import com.spillman.common.Project;
 import com.spillman.common.Request;
 import com.spillman.common.Task;
 import com.spillman.common.WorkLog;
+import com.spillman.workfront.api.StreamClient;
+import com.spillman.workfront.api.StreamClientException;
 
 public class WorkfrontClient {
 	private static final Logger logger = LogManager.getLogger();

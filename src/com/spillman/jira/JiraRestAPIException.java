@@ -1,4 +1,4 @@
-package com.jira.api;
+package com.spillman.jira;
 
 @SuppressWarnings("serial")
 public class JiraRestAPIException extends Exception {

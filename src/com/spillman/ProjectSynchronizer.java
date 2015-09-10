@@ -12,9 +12,6 @@ import java.util.Objects;
 
 import javax.swing.event.ListSelectionEvent;
 
-import com.attask.api.StreamClientException;
-import com.jira.api.Jira;
-import com.jira.api.JiraIssueNotFoundException;
 import com.spillman.common.Account;
 import com.spillman.common.Opportunity;
 import com.spillman.common.Project;
@@ -23,11 +20,14 @@ import com.spillman.common.Task;
 import com.spillman.common.WorkLog;
 import com.spillman.crm.CRMClient;
 import com.spillman.crm.CRMException;
+import com.spillman.jira.Jira;
 import com.spillman.jira.JiraClient;
 import com.spillman.jira.JiraException;
+import com.spillman.jira.JiraIssueNotFoundException;
 import com.spillman.workfront.Workfront;
 import com.spillman.workfront.WorkfrontClient;
 import com.spillman.workfront.WorkfrontException;
+import com.spillman.workfront.api.StreamClientException;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;

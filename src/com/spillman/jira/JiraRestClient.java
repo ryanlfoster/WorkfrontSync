@@ -1,4 +1,4 @@
-package com.jira.api;
+package com.spillman.jira;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
