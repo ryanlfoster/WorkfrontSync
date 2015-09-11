@@ -15,7 +15,7 @@ import org.json.JSONObject;
 
 import com.spillman.workfront.Workfront;
 
-public class Project {
+public class Project extends OpportunityHolder {
 	private static final Logger logger = LogManager.getLogger();
 	
 	private String workfrontProjectID;
@@ -30,9 +30,6 @@ public class Project {
 	private String workfrontProgram;
 	private String url;
 	private List<String> versions;
-	private Opportunity opportunity;
-	private List<String> opportunityIDs;
-	private Integer combinedProbability;
 	private boolean syncWithJira;
 	private Date lastJiraSync;
 	private HashMap<String,Boolean> specialEpics;
@@ -269,52 +266,6 @@ public class Project {
 		this.jiraProjectKey = jiraProjectKey;
 	}
 
-	public Integer getCombinedProbability() {
-		return combinedProbability;
-	}
-
-	public void setCombinedProbability(Integer combinedProbability) {
-		this.combinedProbability = combinedProbability;
-	}
-
-	public Opportunity getOpportunity() {
-		return opportunity;
-	}
-
-	public void setOpportunity(Opportunity opportunity) {
-		this.opportunity = opportunity;
-	}
-	
-	public List<String> getAllOpportunityIDs() {
-		return opportunityIDs;
-	}
-	
-	public void setOpportunities(JSONObject request) throws JSONException {
-		setOpportunity(new Opportunity(request));
-
-		// Add the ID of the primary opportunity to the list
-		opportunityIDs = new ArrayList<String>();
-		if (this.opportunity.getCrmOpportunityID() != null) {
-			opportunityIDs.add(this.opportunity.getCrmOpportunityID());
-		}
-		
-		// Add the IDs of additional opportunities to the list
-		if (request.has(Workfront.OPPORTUNITIES)) {
-			setOpportunityIDs(request.get(Workfront.OPPORTUNITIES));
-		}
-		
-	}
-	
-	private void setOpportunityIDs(Object object) throws JSONException {
-		if (object instanceof JSONArray) {
-			for (int i = 0; i < ((JSONArray)object).length(); i++) {
-				opportunityIDs.add(((JSONArray)object).getString(i));
-			}
-		} else if (object != JSONObject.NULL) {
-			opportunityIDs.add(object.toString());
-		}
-	}
-
 	private List<String> getArrayValues(JSONObject fields, String fieldName) {
 		try {
 			if (fields.has(fieldName) && !fields.isNull(fieldName)) {
@@ -337,5 +288,20 @@ public class Project {
 			System.out.println(e.getMessage());
 			return null;
 		}
+	}
+
+	@Override
+	public void setWorkfrontID(String id) {
+		setWorkfrontProjectID(id);
+	}
+
+	@Override
+	public String getWorkfrontID() {
+		return getWorkfrontProjectID();
+	}
+
+	@Override
+	public String getWorkfrontObjectCode() {
+		return Workfront.OBJCODE_PROJ;
 	}
 }

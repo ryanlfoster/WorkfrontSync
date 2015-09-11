@@ -14,6 +14,7 @@ import org.json.JSONObject;
 import com.spillman.SyncProperties;
 import com.spillman.common.Account;
 import com.spillman.common.Opportunity;
+import com.spillman.common.OpportunityHolder;
 import com.spillman.common.Project;
 import com.spillman.common.Request;
 import com.spillman.common.Task;
@@ -380,6 +381,28 @@ public class WorkfrontClient {
 		logger.exit();
 	}
 
+	public void updateOpportunityStatus(OpportunityHolder wfObject, Opportunity curopp) throws WorkfrontException {
+		logger.entry(wfObject, curopp);
+
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put(Workfront.OPPORTUNITY_FLAG, curopp.getFlag());
+		map.put(Workfront.OPPORTUNITY_PHASE, curopp.getPhase());
+		map.put(Workfront.OPPORTUNITY_POSITION, curopp.getPosition());
+		map.put(Workfront.OPPORTUNITY_PROBABILITY, curopp.getProbability());
+		map.put(Workfront.COMBINED_PROBABILITY, wfObject.getCombinedProbability());
+		map.put(Workfront.OPPORTUNITY_STATE, curopp.getState());
+		map.put(Workfront.LEAD_OPPORTUNITY, curopp.getCrmOpportunityID());
+		try {
+			logger.debug("Updating opportunity status {}", map.toString());
+			client.put(wfObject.getWorkfrontObjectCode(), wfObject.getWorkfrontID(), map);
+		} catch (StreamClientException e) {
+			throw new WorkfrontException(e);
+		}
+		
+		logger.exit();
+	}
+
+	/*
 	public void updateOpportunityStatus(Request request, Opportunity curopp) throws WorkfrontException {
 		logger.entry(request, curopp);
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -419,7 +442,8 @@ public class WorkfrontClient {
 		
 		logger.exit();
 	}
-
+	 */
+	
 	public HashMap<String, Request> getActiveRequests(HashMap<String, Request> activeRequests,
 			Date startTimestamp, Date endTimestamp) throws WorkfrontException {
 		logger.entry(activeRequests, startTimestamp, endTimestamp);

@@ -5,8 +5,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+
 import com.spillman.common.Account;
 import com.spillman.common.Opportunity;
+import com.spillman.common.OpportunityHolder;
 import com.spillman.common.Project;
 import com.spillman.common.Request;
 import com.spillman.common.Task;
@@ -193,7 +195,8 @@ public class ProjectSynchronizer {
 		// Sync each request
 		for (Request request : activeRequests.values()) {
 			try {
-				syncRequest(request);
+				syncOpportunity(request);
+//				syncRequest(request);
 			} catch (WorkfrontException e) {
 				
 				// We may find that the request doesn't exist in Workfront anymore
@@ -219,7 +222,7 @@ public class ProjectSynchronizer {
 		}
 	}
 
-
+	/*
 	private static void syncRequest(Request request) throws CRMException, WorkfrontException {
 
 		List<String> oppIDs = request.getAllOpportunityIDs();
@@ -230,7 +233,7 @@ public class ProjectSynchronizer {
 			Integer curProbability = request.getCombinedProbability();
 			Integer newProbability = crmClient.getCombinedProbability(oppIDs);
 			
-			if (curleadopp == null 
+			if (curleadopp == null || curleadopp.getCrmOpportunityID() == null
 					|| !curleadopp.getCrmOpportunityID().equals(newleadopp.getCrmOpportunityID())
 					|| !curProbability.equals(newProbability)) {
 				request.setCombinedProbability(newProbability);
@@ -238,10 +241,11 @@ public class ProjectSynchronizer {
 			}
 		}
 	}
-
+	*/
+	
 	private static void synchronizeProjects(Date lastSyncTimestamp, Date currentSyncTimestamp) {
 		try {
-			// TODO: Now that we are synching opportunities on projects, we need to sync all projects
+			// TODO: Now that we are syncing opportunities on projects, we need to sync all projects
 			// that have an opportunity.
 			activeProjects = workfrontClient.updateProjectList(activeProjects, lastSyncTimestamp, currentSyncTimestamp);
 			
@@ -279,6 +283,30 @@ public class ProjectSynchronizer {
 		}
 	}
 
+	private static void syncOpportunity(OpportunityHolder wfObject) throws CRMException, WorkfrontException {
+		logger.entry(wfObject);
+		
+		List<String> oppIDs = wfObject.getAllOpportunityIDs();
+		
+		if (oppIDs.size() > 0) {
+			Opportunity curleadopp = wfObject.getOpportunity();
+			Opportunity newleadopp = crmClient.getLeadingOpportunity(oppIDs);
+			Integer curProbability = wfObject.getCombinedProbability();
+			Integer newProbability = crmClient.getCombinedProbability(oppIDs);
+			
+			if (curleadopp == null || curleadopp.getCrmOpportunityID() == null
+					|| !curleadopp.getCrmOpportunityID().equals(newleadopp.getCrmOpportunityID())
+					|| curProbability == null
+					|| !curProbability.equals(newProbability)) {
+				wfObject.setCombinedProbability(newProbability);
+				workfrontClient.updateOpportunityStatus(wfObject, newleadopp);
+			}
+		}
+		
+		logger.exit();
+	}
+
+	/*
 	private static void syncOpportunity(Project project) throws CRMException, WorkfrontException {
 		logger.entry(project);
 		
@@ -289,8 +317,6 @@ public class ProjectSynchronizer {
 			Opportunity newleadopp = crmClient.getLeadingOpportunity(oppIDs);
 			Integer curProbability = project.getCombinedProbability();
 			Integer newProbability = crmClient.getCombinedProbability(oppIDs);
-			logger.debug("curleadopp: {}", curleadopp);
-			logger.debug("newleadopp: {}", newleadopp);
 			
 			if (curleadopp == null || curleadopp.getCrmOpportunityID() == null
 					|| !curleadopp.getCrmOpportunityID().equals(newleadopp.getCrmOpportunityID())
@@ -303,7 +329,8 @@ public class ProjectSynchronizer {
 		
 		logger.exit();
 	}
-
+	*/
+	
 	private static void syncWorkLog(Project project, Date currentSyncTimestamp) throws JiraException, WorkfrontException {
 		ArrayList<WorkLog> worklog = jiraClient.getWorkLogEntries(project, project.getLastJiraSync(), currentSyncTimestamp);
 		
@@ -326,8 +353,8 @@ public class ProjectSynchronizer {
 		// are up to date with Jira.
 		for (Task task : project.getWorkfrontDevTasks().values()) {
 
-			// Skip any tasks that aren't marked to sync with Jira or haven't changed since the last sync cycle
-			if (!task.isSyncWithJira() || lastSyncTimestamp.after(task.getWorkfrontLastUpdateDate())) {
+			// Skip any tasks that aren't marked to sync with Jira
+			if (!task.isSyncWithJira()) {
 				continue;
 			}
 			
