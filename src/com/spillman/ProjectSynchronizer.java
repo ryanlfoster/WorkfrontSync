@@ -18,6 +18,7 @@ import com.spillman.crm.CRMException;
 import com.spillman.jira.JiraClient;
 import com.spillman.jira.JiraException;
 import com.spillman.jira.JiraIssueNotFoundException;
+import com.spillman.jira.MissingDevTeamException;
 import com.spillman.workfront.Workfront;
 import com.spillman.workfront.WorkfrontClient;
 import com.spillman.workfront.WorkfrontException;
@@ -222,27 +223,6 @@ public class ProjectSynchronizer {
 		}
 	}
 
-	/*
-	private static void syncRequest(Request request) throws CRMException, WorkfrontException {
-
-		List<String> oppIDs = request.getAllOpportunityIDs();
-		
-		if (oppIDs.size() > 0) {
-			Opportunity curleadopp = request.getOpportunity();
-			Opportunity newleadopp = crmClient.getLeadingOpportunity(oppIDs);
-			Integer curProbability = request.getCombinedProbability();
-			Integer newProbability = crmClient.getCombinedProbability(oppIDs);
-			
-			if (curleadopp == null || curleadopp.getCrmOpportunityID() == null
-					|| !curleadopp.getCrmOpportunityID().equals(newleadopp.getCrmOpportunityID())
-					|| !curProbability.equals(newProbability)) {
-				request.setCombinedProbability(newProbability);
-				workfrontClient.updateOpportunityStatus(request, newleadopp);
-			}
-		}
-	}
-	*/
-	
 	private static void synchronizeProjects(Date lastSyncTimestamp, Date currentSyncTimestamp) {
 		try {
 			// TODO: Now that we are syncing opportunities on projects, we need to sync all projects
@@ -251,23 +231,20 @@ public class ProjectSynchronizer {
 			
 			for (Project project : activeProjects.values()) {
 				
-				// Add new projects to Jira
-				if (!project.hasJiraProjectID()) {
-					logger.debug("Creating project '{}' in Jira...", project.getName());
-					project.setJiraDevTeam(properties.lookupDevTeam(project.getWorkfrontProgram()));
-					if (project.getVersions() == null) 
-					{ 
-						project.addVersion(properties.getDefaultVersion()); 
+				// If we are syncing this project with Jira...
+				if (project.isSyncWithJira()) {
+
+					// Add new projects to Jira
+					if (!project.hasJiraProjectID()) {
+						createJiraProject(project);
 					}
-					
-					jiraClient.addProjectToJira(project);
-					workfrontClient.updateJiraProjectID(project);
+
+					// Sync Jira issues and worklog with Workfront
+					syncTasks(project, lastSyncTimestamp, currentSyncTimestamp);
+					syncWorkLog(project, currentSyncTimestamp);
 				}
 
-				// Sync Jira issues and worklog with Workfront
-				logger.debug("Syncing project '{}'...", project.getName());
-				syncTasks(project, lastSyncTimestamp, currentSyncTimestamp);
-				syncWorkLog(project, currentSyncTimestamp);
+				// Sync the opportunities
 				syncOpportunity(project);
 			}
 		}
@@ -283,9 +260,25 @@ public class ProjectSynchronizer {
 		}
 	}
 
-	private static void syncOpportunity(OpportunityHolder wfObject) throws CRMException, WorkfrontException {
-		logger.entry(wfObject);
+
+	private static void createJiraProject(Project project) throws JiraException,	WorkfrontException {
+		logger.debug("Creating project '{}' in Jira...", project.getName());
+		project.setJiraDevTeam(properties.lookupDevTeam(project.getWorkfrontProgram()));
+		if (project.getVersions() == null) 
+		{ 
+			project.addVersion(properties.getDefaultVersion()); 
+		}
 		
+		try {
+			jiraClient.addProjectToJira(project);
+			workfrontClient.updateJiraProjectID(project);
+		} catch (MissingDevTeamException e) {
+			logger.catching(e);
+		}
+	}
+
+	private static void syncOpportunity(OpportunityHolder wfObject) throws CRMException, WorkfrontException {
+		logger.debug("Syncing opportunites for Workfront object {}", wfObject);
 		List<String> oppIDs = wfObject.getAllOpportunityIDs();
 		
 		if (oppIDs.size() > 0) {
@@ -302,36 +295,10 @@ public class ProjectSynchronizer {
 				workfrontClient.updateOpportunityStatus(wfObject, newleadopp);
 			}
 		}
-		
-		logger.exit();
 	}
 
-	/*
-	private static void syncOpportunity(Project project) throws CRMException, WorkfrontException {
-		logger.entry(project);
-		
-		List<String> oppIDs = project.getAllOpportunityIDs();
-		
-		if (oppIDs.size() > 0) {
-			Opportunity curleadopp = project.getOpportunity();
-			Opportunity newleadopp = crmClient.getLeadingOpportunity(oppIDs);
-			Integer curProbability = project.getCombinedProbability();
-			Integer newProbability = crmClient.getCombinedProbability(oppIDs);
-			
-			if (curleadopp == null || curleadopp.getCrmOpportunityID() == null
-					|| !curleadopp.getCrmOpportunityID().equals(newleadopp.getCrmOpportunityID())
-					|| curProbability == null
-					|| !curProbability.equals(newProbability)) {
-				project.setCombinedProbability(newProbability);
-				workfrontClient.updateOpportunityStatus(project, newleadopp);
-			}
-		}
-		
-		logger.exit();
-	}
-	*/
-	
 	private static void syncWorkLog(Project project, Date currentSyncTimestamp) throws JiraException, WorkfrontException {
+		logger.debug("Syncing worklogs for project {}", project.getName());
 		ArrayList<WorkLog> worklog = jiraClient.getWorkLogEntries(project, project.getLastJiraSync(), currentSyncTimestamp);
 		
 		for (WorkLog wl : worklog) {
@@ -348,7 +315,8 @@ public class ProjectSynchronizer {
 	}
 	
 	private static void syncTasks(Project project, Date lastSyncTimestamp, Date currentSyncTimestamp) throws WorkfrontException, JiraException {
-
+		logger.debug("Syncing tasks for project {}", project.getName());
+		
 		// First, go through all the tasks we found in Workfront and make sure they
 		// are up to date with Jira.
 		for (Task task : project.getWorkfrontDevTasks().values()) {

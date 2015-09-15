@@ -10,9 +10,9 @@ import org.json.JSONObject;
 import com.spillman.workfront.Workfront;
 
 public abstract class OpportunityHolder implements WorkfrontObject {
-	private Opportunity opportunity;
-	private List<String> opportunityIDs;
-	private Integer combinedProbability;
+	protected Opportunity opportunity;
+	protected List<String> opportunityIDs;
+	protected Integer combinedProbability;
 
 
 	public Integer getCombinedProbability() {

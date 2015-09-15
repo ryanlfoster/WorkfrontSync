@@ -102,6 +102,8 @@ public class Workfront {
 	public static final String STATUS_CURRENT 			= "CUR";
 	public static final String STATUS_CLOSED 			= "CLS";
 	public static final String STATUS_COMPLETE 			= "CPL";
+	public static final String STATUS_DEAD	 			= "DED";
+	public static final String STATUS_REJECTED 			= "REJ";
 
 	// Other Workfront Values
 	public static final String DURATION_EFFORT_DRIVEN 	= "D";

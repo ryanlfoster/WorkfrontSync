@@ -153,8 +153,7 @@ public class JiraClient {
 		logger.entry(project);
 		
 		if (project.getJiraDevTeam() == null) {
-			logger.error("Unable to create Jira project because the Workfront project has not been assigned to a program");
-			return;
+			throw new MissingDevTeamException("Unable to create Jira project because the Workfront project has not been assigned to a program");
 		}
 		
 		Map<String, Object> params = new HashMap<String, Object>();

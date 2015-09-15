@@ -31,6 +31,9 @@ public class Request extends OpportunityHolder {
 		return new ToStringBuilder(this)
 				.append("name", name)
 				.append("workfrontID", workfrontRequestID)
+				.append("opportunity", opportunity)
+				.append("opportunityIDs", opportunityIDs)
+				.append("combinedProbability", combinedProbability)
 				.toString();
 	}
 

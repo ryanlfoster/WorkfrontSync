@@ -73,7 +73,7 @@ public class Project extends OpportunityHolder {
 		if (project.isNull(Workfront.SYNC_WITH_JIRA)) {
 			setSyncWithJira(false);
 		} else {
-			setSyncWithJira(project.getString(Workfront.SYNC_WITH_JIRA).equals("Yes"));
+			setSyncWithJira(project.getString(Workfront.SYNC_WITH_JIRA).equals(Workfront.YES));
 		}
 		
 		if (project.isNull(Workfront.LAST_JIRA_SYNC)) {
@@ -103,6 +103,9 @@ public class Project extends OpportunityHolder {
 				.append("versions", versions)
 				.append("syncWithJira", syncWithJira)
 				.append("lastJiraSync", lastJiraSync)
+				.append("opportunity", opportunity)
+				.append("opportunityIDs", opportunityIDs)
+				.append("combinedProbability", combinedProbability)
 				.append("devTasks", wfDevTasks).toString();
 	}
 
@@ -242,7 +245,7 @@ public class Project extends OpportunityHolder {
 		versions.add(version);
 	}
 
-	public boolean getSyncWithJira() {
+	public boolean isSyncWithJira() {
 		return syncWithJira;
 	}
 

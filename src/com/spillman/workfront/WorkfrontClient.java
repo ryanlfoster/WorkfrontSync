@@ -540,13 +540,13 @@ public class WorkfrontClient {
 		// If the activeProjects object hasn't been initialized, then we need to find all
 		// the active dev projects in Workfront
 		if (activeProjects == null) {
-			searchParams = formatActiveDevProjectsSearchParameters(null, null);
+			searchParams = formatDevProjectsSearchParameters(null, null);
 		}
 		
 		// If the activeProjects object has already been initialized, then we only need to find
 		// any projects that have been updated since the last sync.
 		else {
-			searchParams = formatActiveDevProjectsSearchParameters(startTimestamp, endTimestamp);
+			searchParams = formatDevProjectsSearchParameters(startTimestamp, endTimestamp);
 		}
 		
 		// Search Workfront
@@ -560,10 +560,10 @@ public class WorkfrontClient {
 			
 		if (activeProjects == null) {
 			activeProjects = new HashMap<String, Project>();
-			logger.debug("Found {} active projects in Workfront", projects.length());
+			logger.debug("Found {} projects in Workfront", projects.length());
 		}
 		else {
-			logger.debug("Found {} active projects that were updated between {} and {}", projects.length(), startTimestamp, endTimestamp);
+			logger.debug("Found {} projects that were updated between {} and {}", projects.length(), startTimestamp, endTimestamp);
 		}
 		
 		// Process the results
@@ -573,6 +573,7 @@ public class WorkfrontClient {
 				String projectID = project.getString(Workfront.ID);
 				String status = project.getString(Workfront.STATUS);
 				String name = project.getString(Workfront.NAME);
+				boolean hasOpportunities = !project.isNull(Workfront.OPPORTUNITIES);
 				
 				boolean syncWithJira = false;
 				if (project.has(Workfront.SYNC_WITH_JIRA)) {
@@ -582,32 +583,38 @@ public class WorkfrontClient {
 				// If the project IS NOT in the list
 				if (!activeProjects.containsKey(projectID)) {
 					
-					// and the "Sync With Jira" flag is set to "Yes"
-					if (syncWithJira) {
+					// and the "Sync With Jira" flag is set to "Yes" or there are opportunities to be synced
+					// and the status is an active status
+					if ((syncWithJira || hasOpportunities) && isActiveStatus(status)) {
 						
 						// add the project to the list
 						Project p = new Project(project);
-						p.setImplementationTaskID(getImplementationTaskID(p.getWorkfrontProjectID()));
+						try {
+							p.setImplementationTaskID(getImplementationTaskID(p.getWorkfrontProjectID()));
+						} catch (WorkfrontObjectNotFoundException e) {
+							logger.catching(e);
+						}
 						addDevTasks(p);
 						activeProjects.put(p.getWorkfrontProjectID(), p);
-						logger.debug("Added project {} ({}) to the list of projects to sync", name, projectID);
+						logger.debug("Added project '{}' ({}) to the list of projects to sync", name, projectID);
 					} 
 
 					// otherwise, skip the project
 					else {
-						logger.warn("Skipping project {} ({}) because the 'Sync With Jira' flag is set to 'No'", name, projectID);
+						logger.warn("Skipping project '{}' ({})", name, projectID);
 					}
 				}
 				
 				// If the project IS in the list
 				else if(activeProjects.containsKey(projectID)) {
 					
-					// and the status is closed or the flag is set to "No"
-					if (status.equals(Workfront.STATUS_CLOSED) || !syncWithJira) {
+					// and the status is not active 
+					// or the Sync With Jira flag is set to "No" and there are no opportunities to sync
+					if (!isActiveStatus(status) || (!syncWithJira && !hasOpportunities)) {
 						
 						// remove the project from the list
 						activeProjects.remove(projectID);
-						logger.debug("Removed project {} ({}) from the list of projects to sync", name, projectID);
+						logger.debug("Removed project '{}' ({}) from the list of projects to sync", name, projectID);
 					} 
 					
 					// otherwise, update the list of tasks in the project
@@ -623,6 +630,13 @@ public class WorkfrontClient {
 		}
 
 		return logger.exit(activeProjects);
+	}
+
+	private boolean isActiveStatus(String status) {
+		return status != null
+				&& !status.equals(Workfront.STATUS_COMPLETE) 
+				&& !status.equals(Workfront.STATUS_DEAD)
+				&& !status.equals(Workfront.STATUS_REJECTED);
 	}
 
 	public Task updateTask(Project project, Task updatedTask) throws WorkfrontException {
@@ -767,7 +781,7 @@ public class WorkfrontClient {
 		logger.exit();
 	}
 
-	private String getImplementationTaskID(String projectID) throws JSONException, StreamClientException {
+	private String getImplementationTaskID(String projectID) throws JSONException, StreamClientException, WorkfrontObjectNotFoundException {
 		logger.entry(projectID);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -776,7 +790,7 @@ public class WorkfrontClient {
 		
 		JSONArray results = client.search(Workfront.OBJCODE_TASK, map, TASK_FIELDS);
 		if(results.length() < 1) {
-			throw new StreamClientException("Could not find implementation task for project " + projectID);
+			throw new WorkfrontObjectNotFoundException("Could not find implementation task for project " + projectID);
 		}
 		
 		return logger.exit(results.getJSONObject(0).getString(Workfront.ID));
@@ -822,20 +836,19 @@ public class WorkfrontClient {
 		return logger.exit(search);
 	}
 
-	private Map<String, Object> formatActiveDevProjectsSearchParameters(Date lastUpdateStart, Date lastUpdateEnd) {
+	private Map<String, Object> formatDevProjectsSearchParameters(Date lastUpdateStart, Date lastUpdateEnd) {
 		logger.entry(lastUpdateStart, lastUpdateEnd);
 		
 		Map<String, Object> search = new HashMap<String, Object>();
 		
-		// Active development projects can be found in the Development portfolio
+		// Development projects can be found in the Development portfolio
 		search.put(Workfront.PORTFOLIO_ID, portfolioID);
+		
 
 		// If no dates were provided, query for a fresh list of active projects
-		// that are marked to be synced with Jira
 		if (lastUpdateStart == null || lastUpdateEnd == null) {
-			// Active dev projects are those projects that have the 
-			// custom field "Sync With Jira" set to "Yes".
-			search.put(Workfront.SYNC_WITH_JIRA, Workfront.YES);
+			search.put(Workfront.STATUS, Workfront.STATUS_COMPLETE);
+			search.put(Workfront.STATUS_MOD, Workfront.MOD_NOT_EQUAL_TO);
 		}
 		
 		// If dates were provided, find all projects that were changed
