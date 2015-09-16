@@ -123,8 +123,8 @@ public class ProjectSynchronizer {
 
 			currentTimestamp = new Date();
 
-			synchronizeCustomFields(lastSyncTimestamp, currentTimestamp);
-			synchronizeProjects(lastSyncTimestamp, currentTimestamp);
+//			synchronizeCustomFields(lastSyncTimestamp, currentTimestamp);
+//			synchronizeProjects(lastSyncTimestamp, currentTimestamp);
 			syncrhonizeRequests(lastSyncTimestamp, currentTimestamp);
 			
 			lastSyncTimestamp = currentTimestamp;

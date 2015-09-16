@@ -88,8 +88,8 @@ public class CRMClient {
 			pla = pla * pl;
 		}
 		
-		double cp = 1 - pla;
+		double cp = 1.0 - pla;
 		
-		return (int)(cp * 100);
+		return (int)(Math.rint(cp * 100.0));
 	}
 }
