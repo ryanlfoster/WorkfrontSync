@@ -22,6 +22,7 @@ import com.spillman.jira.MissingDevTeamException;
 import com.spillman.workfront.Workfront;
 import com.spillman.workfront.WorkfrontClient;
 import com.spillman.workfront.WorkfrontException;
+import com.spillman.workfront.WorkfrontObjectNotFoundException;
 import com.spillman.workfront.api.StreamClientException;
 
 import org.apache.logging.log4j.Logger;
@@ -123,8 +124,8 @@ public class ProjectSynchronizer {
 
 			currentTimestamp = new Date();
 
-//			synchronizeCustomFields(lastSyncTimestamp, currentTimestamp);
-//			synchronizeProjects(lastSyncTimestamp, currentTimestamp);
+			synchronizeCustomFields(lastSyncTimestamp, currentTimestamp);
+			synchronizeProjects(lastSyncTimestamp, currentTimestamp);
 			syncrhonizeRequests(lastSyncTimestamp, currentTimestamp);
 			
 			lastSyncTimestamp = currentTimestamp;
@@ -197,7 +198,6 @@ public class ProjectSynchronizer {
 		for (Request request : activeRequests.values()) {
 			try {
 				syncOpportunity(request);
-//				syncRequest(request);
 			} catch (WorkfrontException e) {
 				
 				// We may find that the request doesn't exist in Workfront anymore
@@ -303,7 +303,12 @@ public class ProjectSynchronizer {
 		
 		for (WorkLog wl : worklog) {
 			logger.debug("Adding worklog entry for task '{}'...", wl.getJiraIssuenum());
-			workfrontClient.addWorkLogEntry(project, wl);
+			try {
+				workfrontClient.addWorkLogEntry(project, wl);
+			}
+			catch (WorkfrontObjectNotFoundException e) {
+				logger.catching(e);
+			}
 		}
 		
 		// If we processed some worklog entries, update the "Last Jira Sync"

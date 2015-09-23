@@ -335,6 +335,10 @@ public class WorkfrontClient {
 			wfTaskID = t.getWorkfrontTaskID();
 		}
 		
+		if (wfTaskID == null || wfTaskID.isEmpty()) {
+			throw new WorkfrontObjectNotFoundException("Could not find a Workfront task to log hours worked.");
+		}
+		
 		fields.put(Workfront.TASK_ID, wfTaskID);
 		fields.put(Workfront.HOURS, worklog.getHoursWorked());
 		fields.put(Workfront.OWNER_ID, users.get(worklog.getJiraWorker()));
@@ -619,7 +623,16 @@ public class WorkfrontClient {
 					
 					// otherwise, update the list of tasks in the project
 					else {
-						addDevTasks(activeProjects.get(projectID));
+						Project p = activeProjects.get(projectID);
+						
+						// The Sync With Jira flag may have changed, so update it
+						p.setSyncWithJira(syncWithJira);
+						
+						// The Opportunities may have changed, so update them
+						p.setOpportunities(project);
+						
+						// Refresh the list of tasks to be synced with Jira
+						addDevTasks(p);
 					}
 				}
 			} catch (JSONException e) {

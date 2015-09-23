@@ -35,8 +35,8 @@ public abstract class OpportunityHolder implements WorkfrontObject {
 		return opportunityIDs;
 	}
 	
-	public void setOpportunities(JSONObject request) throws JSONException {
-		setOpportunity(new Opportunity(request));
+	public void setOpportunities(JSONObject project) throws JSONException {
+		setOpportunity(new Opportunity(project));
 
 		// Add the ID of the primary opportunity to the list
 		opportunityIDs = new ArrayList<String>();
@@ -45,8 +45,8 @@ public abstract class OpportunityHolder implements WorkfrontObject {
 		}
 		
 		// Add the IDs of additional opportunities to the list
-		if (request.has(Workfront.OPPORTUNITIES)) {
-			setOpportunityIDs(request.get(Workfront.OPPORTUNITIES));
+		if (project.has(Workfront.OPPORTUNITIES)) {
+			setOpportunityIDs(project.get(Workfront.OPPORTUNITIES));
 		}
 		
 	}
