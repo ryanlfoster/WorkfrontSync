@@ -40,45 +40,41 @@ public class Project extends OpportunityHolder {
 	}
 	
 	public Project(JSONObject project) throws JSONException {
+		update(project);
+
+		this.wfDevTasks = new HashMap<String,Task>();
+		this.jiraDevTasks = new HashMap<String,Task>();
+		this.specialEpics = new HashMap<String,Boolean>();
+	}
+	
+	public void update(JSONObject project) throws JSONException {
 		setWorkfrontProjectID(project.getString(Workfront.ID));
 		setName(project.getString(Workfront.NAME));
 		setStatus(project.getString(Workfront.STATUS));
 		setOwner(project.getJSONObject(Workfront.OWNER).getString(Workfront.NAME));
-		setImplementationTaskID(null);
 		setJiraProjectID(project.getStringOrNull(Workfront.JIRA_PROJECT_ID));
 		setJiraProjectKey(project.getStringOrNull(Workfront.JIRA_PROJECT_KEY));
 		setDescription(project.getStringOrNull(Workfront.DESCRIPTION));
 		setURL(project.getStringOrNull(Workfront.URL));
 		setOpportunities(project);
+
 		if (!project.isNull(Workfront.COMBINED_PROBABILITY)) {
 			setCombinedProbability(project.getInt(Workfront.COMBINED_PROBABILITY));
 		}
 
-		this.wfDevTasks = new HashMap<String,Task>();
-		this.jiraDevTasks = new HashMap<String,Task>();
-		this.specialEpics = new HashMap<String,Boolean>();
-
-		if (project.isNull(Workfront.PROGRAM)) {
-			setWorkfrontProgram(null);
-		} else {
+		if (!project.isNull(Workfront.PROGRAM)) {
 			setWorkfrontProgram(project.getJSONObject(Workfront.PROGRAM).getString(Workfront.NAME));
 		}
 		
-		if (project.isNull(Workfront.VERSIONS)) {
-			setVersions(null);
-		} else {
+		if (!project.isNull(Workfront.VERSIONS)) {
 			setVersions(getArrayValues(project, Workfront.VERSIONS));
 		}
 
-		if (project.isNull(Workfront.SYNC_WITH_JIRA)) {
-			setSyncWithJira(false);
-		} else {
+		if (!project.isNull(Workfront.SYNC_WITH_JIRA)) {
 			setSyncWithJira(project.getString(Workfront.SYNC_WITH_JIRA).equals(Workfront.YES));
 		}
 		
-		if (project.isNull(Workfront.LAST_JIRA_SYNC)) {
-			setLastJiraSync(null);
-		} else {
+		if (!project.isNull(Workfront.LAST_JIRA_SYNC)) {
 			try {
 				setLastJiraSync(Workfront.dateFormatterTZ.parse(project.getString(Workfront.LAST_JIRA_SYNC)));
 			} catch (ParseException e) {
@@ -86,7 +82,7 @@ public class Project extends OpportunityHolder {
 			}
 		}
 	}
-	
+
 	public String toString() {
 		return new ToStringBuilder(this)
 				.append("workfrontProjectID", workfrontProjectID)

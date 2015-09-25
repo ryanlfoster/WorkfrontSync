@@ -621,17 +621,10 @@ public class WorkfrontClient {
 						logger.debug("Removed project '{}' ({}) from the list of projects to sync", name, projectID);
 					} 
 					
-					// otherwise, update the list of tasks in the project
+					// otherwise, update the the project
 					else {
 						Project p = activeProjects.get(projectID);
-						
-						// The Sync With Jira flag may have changed, so update it
-						p.setSyncWithJira(syncWithJira);
-						
-						// The Opportunities may have changed, so update them
-						p.setOpportunities(project);
-						
-						// Refresh the list of tasks to be synced with Jira
+						p.update(project);
 						addDevTasks(p);
 					}
 				}
