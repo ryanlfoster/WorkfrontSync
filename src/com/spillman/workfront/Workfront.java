@@ -18,7 +18,7 @@ public class Workfront {
 	
 	// Workfront Parameter Names
 	public static final String PARAM_ACCOUNT_NAME		= "Account Name";
-	public static final String PARAM_LEAD_OPPORTUNITY	= "Lead Opportunity";
+//	public static final String PARAM_LEAD_OPPORTUNITY	= "Lead Opportunity";
 	public static final String PARAM_OPPORTUNITIES		= "Opportunities";
 	public static final String PARAM_PILOT_AGENCY		= "Pilot Agency";
 
@@ -46,7 +46,9 @@ public class Workfront {
 	public static final String LABEL					= "label";
 	public static final String LAST_JIRA_SYNC			= "DE:Last Jira Sync";
 	public static final String LAST_UPDATE_DATE			= "lastUpdateDate";
-	public static final String LEAD_OPPORTUNITY			= "DE:Lead Opportunity";
+//	public static final String LEAD_OPPORTUNITY			= "DE:Lead Opportunity";
+	public static final String LEAD_OPPORTUNITY_NAME	= "DE:Lead Opportunity Name";
+	public static final String LEAD_OPPORTUNITY_ID		= "DE:Lead Opportunity ID";
 	public static final String LIMIT					= "$$LIMIT";
 	public static final String NAME 					= "name";
 	public static final String OPPORTUNITIES			= "DE:Opportunities";
@@ -109,6 +111,7 @@ public class Workfront {
 	public static final String DURATION_EFFORT_DRIVEN 	= "D";
 	public static final String MAX_USERS				= "500";
 	public static final String MAX_PROJECTS				= "2000";
+	public static final int    MAX_DESC_SIZE			= 2000;
 	public static final String YES						= "Yes";
 	
 	// Workfront Date Formatters

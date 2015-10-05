@@ -32,6 +32,7 @@ import org.apache.logging.log4j.LogManager;
 public class ProjectSynchronizer {
 	private static final Logger logger = LogManager.getLogger();
 	
+	private static String FATAL_ERROR_MESSAGE = "FATAL ERROR, EMAILING ADMIN";
 	private static SyncProperties properties = null;
 	private static LastSyncProperty lastSync = null;
 	private static WorkfrontClient workfrontClient = null;
@@ -51,11 +52,7 @@ public class ProjectSynchronizer {
 			
 			// Obviously something unexpected happened if we got to this point
 			// Log the error and then exit
-			logger.catching(e);
-		
-			// Make sure we exit with "an unexpected error" so the Windows services
-			// auto recovery will restart the service
-			System.exit(-1); 
+			logger.fatal(FATAL_ERROR_MESSAGE, e);
 		}
 	}
 
@@ -66,7 +63,7 @@ public class ProjectSynchronizer {
 			properties = new SyncProperties();
 			lastSync = new LastSyncProperty();
 		} catch (IOException e) {
-			logger.fatal("Error reading properties file", e);
+			logger.fatal(FATAL_ERROR_MESSAGE, e);
 			System.exit(-1); // There is no point in continuing if we can't read the properties file.
 		}
 
@@ -91,7 +88,7 @@ public class ProjectSynchronizer {
 			workfrontClient = new WorkfrontClient(properties);
 			workfrontClient.login(properties.getWorkfrontUsername(), properties.getWorkfrontApiKey());
 		} catch (WorkfrontException e) {
-			logger.fatal("Error trying to initialize Workfront", e);
+			logger.fatal(FATAL_ERROR_MESSAGE, e);
 			System.exit(-1); // There is no point in continuing if we couldn't login to Workfront
 		}
 		
@@ -100,7 +97,7 @@ public class ProjectSynchronizer {
 		try {
 			jiraClient = new JiraClient(properties);
 		} catch (JiraException e) {
-			logger.fatal("Error tyring to initialize Jira", e);
+			logger.fatal(FATAL_ERROR_MESSAGE, e);
 			System.exit(-1);
 		}
 		
@@ -109,7 +106,7 @@ public class ProjectSynchronizer {
 		try {
 			crmClient = new CRMClient(properties.getCRMJDBCConnectionString());
 		} catch (CRMException e) {
-			logger.fatal("Error tyring to initialize CRM", e);
+			logger.fatal(FATAL_ERROR_MESSAGE, e);
 			System.exit(-1);
 		}
 	}
@@ -156,71 +153,10 @@ public class ProjectSynchronizer {
 			workfrontClient.addAccounts(crmClient.getNewAccounts(lastSyncTimestamp));
 			syncPilotAgencies();
 		} catch (WorkfrontException | CRMException | JiraException e) {
-			logger.fatal("Experienced an error", e);
+			logger.fatal(FATAL_ERROR_MESSAGE, e);
 			System.exit(-1);
 		}
 		
-	}
-
-	private static void syncPilotAgencies() throws JiraException, WorkfrontException {
-		// Initialize the in memory copy of the list of pilot agencies
-		if (wfPilotAgencies == null) {
-			wfPilotAgencies = workfrontClient.getPilotAgencies(); 
-		}
-		
-		// Compare the list of pilot agencies in Jira to the list of
-		// pilot agencies in Workfront. Keep track of those that
-		// are missing in Workfront.
-		List<Account> newPilotAgencies = new ArrayList<Account>();
-		for (Account account : jiraClient.getPilotAgencies()) {
-			if (wfPilotAgencies.get(account.agencyCode) == null) {
-				newPilotAgencies.add(account);
-				wfPilotAgencies.put(account.agencyCode, account.agencyCode);
-			}
-		}
-		
-		// Now add the missing pilot agencies to Workfront.
-		workfrontClient.addPilotAgencies(newPilotAgencies);
-	}
-	
-	private static void syncrhonizeRequests(Date lastSyncTimestamp, Date currentTimestamp) {
-		List<String> requestsToDelete = new ArrayList<String>();
-		
-		// Update the list of active requests
-		try {
-			activeRequests = workfrontClient.getActiveRequests(activeRequests, lastSyncTimestamp, currentTimestamp);
-		} catch (WorkfrontException e) {
-			logger.fatal("Experienced an error getting active requests", e);
-			System.exit(-1);
-		}
-		
-		// Sync each request
-		for (Request request : activeRequests.values()) {
-			try {
-				syncOpportunity(request);
-			} catch (WorkfrontException e) {
-				
-				// We may find that the request doesn't exist in Workfront anymore
-				// (this happens if the request was converted to a project)
-				if (e.getMessageKey() != null && e.getMessageKey().equals(Workfront.RECORD_NOT_FOUND)) {
-					
-					// Keep track of the deleted request so we can remove it from the list
-					requestsToDelete.add(request.getWorkfrontRequestID());
-				} else {
-					logger.fatal("Experienced an error syncing a request", e);
-					System.exit(-1);
-				}
-			} catch (CRMException e) {
-				logger.fatal("Experienced an error syncing a request", e);
-				System.exit(-1);
-			}
-		}
-
-		// If we ran across any requests that have been deleted
-		// remove them from our list.
-		for (String id : requestsToDelete) {
-			activeRequests.remove(id);
-		}
 	}
 
 	private static void synchronizeProjects(Date lastSyncTimestamp, Date currentSyncTimestamp) {
@@ -248,16 +184,71 @@ public class ProjectSynchronizer {
 				syncOpportunity(project);
 			}
 		}
-		catch (WorkfrontException e) {
-			logger.fatal("Experienced a Workfront error", e);
-			System.exit(-1);
-		} catch (JiraException e) {
-			logger.fatal("Experienced a Jira error", e);
-			System.exit(-1);
-		} catch (CRMException e) {
-			logger.fatal("Experienced a CRM error", e);
+		catch (WorkfrontException | JiraException | CRMException e) {
+			logger.fatal(FATAL_ERROR_MESSAGE, e);
 			System.exit(-1);
 		}
+	}
+	
+	private static void syncrhonizeRequests(Date lastSyncTimestamp, Date currentTimestamp) {
+		List<String> requestsToDelete = new ArrayList<String>();
+		
+		// Update the list of active requests
+		try {
+			activeRequests = workfrontClient.getActiveRequests(activeRequests, lastSyncTimestamp, currentTimestamp);
+		} catch (WorkfrontException e) {
+			logger.fatal(FATAL_ERROR_MESSAGE, e);
+			System.exit(-1);
+		}
+		
+		// Sync each request
+		for (Request request : activeRequests.values()) {
+			try {
+				syncOpportunity(request);
+			} catch (WorkfrontException e) {
+				
+				// We may find that the request doesn't exist in Workfront anymore
+				// (this happens if the request was converted to a project)
+				if (e.getMessageKey() != null && e.getMessageKey().equals(Workfront.RECORD_NOT_FOUND)) {
+					
+					// Keep track of the deleted request so we can remove it from the list
+					requestsToDelete.add(request.getWorkfrontRequestID());
+				} else {
+					logger.fatal(FATAL_ERROR_MESSAGE, e);
+					System.exit(-1);
+				}
+			} catch (CRMException e) {
+				logger.fatal(FATAL_ERROR_MESSAGE, e);
+				System.exit(-1);
+			}
+		}
+
+		// If we ran across any requests that have been deleted
+		// remove them from our list.
+		for (String id : requestsToDelete) {
+			activeRequests.remove(id);
+		}
+	}
+
+	private static void syncPilotAgencies() throws JiraException, WorkfrontException {
+		// Initialize the in memory copy of the list of pilot agencies
+		if (wfPilotAgencies == null) {
+			wfPilotAgencies = workfrontClient.getPilotAgencies(); 
+		}
+		
+		// Compare the list of pilot agencies in Jira to the list of
+		// pilot agencies in Workfront. Keep track of those that
+		// are missing in Workfront.
+		List<Account> newPilotAgencies = new ArrayList<Account>();
+		for (Account account : jiraClient.getPilotAgencies()) {
+			if (wfPilotAgencies.get(account.agencyCode) == null) {
+				newPilotAgencies.add(account);
+				wfPilotAgencies.put(account.agencyCode, account.agencyCode);
+			}
+		}
+		
+		// Now add the missing pilot agencies to Workfront.
+		workfrontClient.addPilotAgencies(newPilotAgencies);
 	}
 
 
@@ -332,13 +323,17 @@ public class ProjectSynchronizer {
 			}
 			
 			if (task.getJiraIssueID() == null || task.getJiraIssueID().isEmpty()) {
-
-				// This is a new task. Add it to Jira.
-				jiraClient.createIssue(project, task);
-
-				// Then update the Workfront task with the Jira issue ID and URL
-				workfrontClient.updateTask(project, task);
-				project.addDevTask(task);
+				try {
+					// This is a new task. Add it to Jira.
+					jiraClient.createIssue(project, task);
+	
+					// Then update the Workfront task with the Jira issue ID and URL
+					workfrontClient.updateTask(project, task);
+					project.addDevTask(task);
+				}
+				catch (JiraException | WorkfrontException e) {
+					logger.catching(e);
+				}
 			}
 			else {
 				// This task is already in Jira. Query Jira to see if we need to update the task.

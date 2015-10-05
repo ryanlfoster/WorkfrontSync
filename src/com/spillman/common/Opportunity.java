@@ -27,8 +27,8 @@ public class Opportunity implements Comparable<Opportunity>{
 	}
 	
 	public Opportunity(JSONObject request) throws JSONException {
-		this.name = request.getStringOrNull(Workfront.LEAD_OPPORTUNITY);
-		this.crmOpportunityID = request.getStringOrNull(Workfront.LEAD_OPPORTUNITY);
+		this.name = request.getStringOrNull(Workfront.LEAD_OPPORTUNITY_NAME);
+		this.crmOpportunityID = request.getStringOrNull(Workfront.LEAD_OPPORTUNITY_ID);
 		this.flag = request.getStringOrNull(Workfront.OPPORTUNITY_FLAG);
 		this.phase = request.getStringOrNull(Workfront.OPPORTUNITY_PHASE);
 		this.position = request.getStringOrNull(Workfront.OPPORTUNITY_POSITION);

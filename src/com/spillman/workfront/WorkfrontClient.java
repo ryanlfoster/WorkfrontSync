@@ -37,7 +37,8 @@ public class WorkfrontClient {
 		Workfront.URL,
 		Workfront.VERSIONS,
 		Workfront.OPPORTUNITIES,
-		Workfront.LEAD_OPPORTUNITY,
+		Workfront.LEAD_OPPORTUNITY_NAME,
+		Workfront.LEAD_OPPORTUNITY_ID,
 		Workfront.OPPORTUNITY_PROBABILITY,
 		Workfront.OPPORTUNITY_FLAG,
 		Workfront.OPPORTUNITY_PHASE,
@@ -53,7 +54,8 @@ public class WorkfrontClient {
 		Workfront.NAME,
 		Workfront.STATUS,
 		Workfront.OPPORTUNITIES,
-		Workfront.LEAD_OPPORTUNITY,
+		Workfront.LEAD_OPPORTUNITY_NAME,
+		Workfront.LEAD_OPPORTUNITY_ID,
 		Workfront.OPPORTUNITY_PROBABILITY,
 		Workfront.OPPORTUNITY_FLAG,
 		Workfront.OPPORTUNITY_PHASE,
@@ -87,7 +89,7 @@ public class WorkfrontClient {
 	private String jiraTaskCustomFormID 	= null;
 	private String jiraTaskCustomFormName	= null;
 	private String accountNameFieldID		= null;
-	private String leadOpportunityFieldID	= null;
+//	private String leadOpportunityFieldID	= null;
 	private String opportunitiesFieldID		= null;
 	private String pilotAgencyFieldID		= null;
 	private String newRequestProjectID		= null;
@@ -140,7 +142,7 @@ public class WorkfrontClient {
 			jiraTaskCustomFormID = getJiraTaskCustomFormID();
 			users = getWorkfrontUsers();
 			accountNameFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, Workfront.PARAM_ACCOUNT_NAME);
-			leadOpportunityFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, Workfront.PARAM_LEAD_OPPORTUNITY);
+//			leadOpportunityFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, Workfront.PARAM_LEAD_OPPORTUNITY);
 			pilotAgencyFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, Workfront.PARAM_PILOT_AGENCY);
 			opportunitiesFieldID = getObjectIdByName(Workfront.OBJCODE_PARAM, Workfront.PARAM_OPPORTUNITIES);
 		} catch (JSONException e) {
@@ -200,27 +202,27 @@ public class WorkfrontClient {
 		return logger.exit(accounts);
 	}
 	
-	public void copyOpportunities() throws WorkfrontException {
-		String[] fields = new String[] {Workfront.ID, Workfront.VALUE, Workfront.LABEL};
-
-		try {
-			JSONArray results = getObjects(Workfront.OBJCODE_POPT, Workfront.PARAMETER_ID, leadOpportunityFieldID, fields);
-			for (int i = 0; i < results.length(); i++) {
-				JSONObject opportunity = (JSONObject)results.get(i);
-				addParameterOption(opportunitiesFieldID, opportunity.getString(Workfront.VALUE), opportunity.getString(Workfront.LABEL));
-				logger.debug("Added opportunity {}", opportunity.getString(Workfront.LABEL));
-			}
-		} catch (StreamClientException | JSONException e) {
-			throw new WorkfrontException(e);
-		}
-		
-	}
+//	public void copyOpportunities() throws WorkfrontException {
+//		String[] fields = new String[] {Workfront.ID, Workfront.VALUE, Workfront.LABEL};
+//
+//		try {
+//			JSONArray results = getObjects(Workfront.OBJCODE_POPT, Workfront.PARAMETER_ID, leadOpportunityFieldID, fields);
+//			for (int i = 0; i < results.length(); i++) {
+//				JSONObject opportunity = (JSONObject)results.get(i);
+//				addParameterOption(opportunitiesFieldID, opportunity.getString(Workfront.VALUE), opportunity.getString(Workfront.LABEL));
+//				logger.debug("Added opportunity {}", opportunity.getString(Workfront.LABEL));
+//			}
+//		} catch (StreamClientException | JSONException e) {
+//			throw new WorkfrontException(e);
+//		}
+//		
+//	}
 
 	public void addOpportunities(List<Opportunity> opportunities) throws WorkfrontException {
 		logger.entry(opportunities);
 		
 		for (Opportunity opportunity : opportunities) {
-			addParameterOption(leadOpportunityFieldID, opportunity.getCrmOpportunityID(), opportunity.getName());
+//			addParameterOption(leadOpportunityFieldID, opportunity.getCrmOpportunityID(), opportunity.getName());
 			addParameterOption(opportunitiesFieldID, opportunity.getCrmOpportunityID(), opportunity.getName());
 			logger.debug("Added opportunity {}.", opportunity);
 		}
@@ -258,12 +260,12 @@ public class WorkfrontClient {
 	}
 	
 	private boolean opportunityIsReferencedByProject(Opportunity opp) throws WorkfrontException {
-		return opportunityIsReferencedBy(Workfront.OBJCODE_PROJ, Workfront.LEAD_OPPORTUNITY, opp)
+		return opportunityIsReferencedBy(Workfront.OBJCODE_PROJ, Workfront.LEAD_OPPORTUNITY_ID, opp)
 				|| opportunityIsReferencedBy(Workfront.OBJCODE_PROJ, Workfront.OPPORTUNITIES, opp);
 	}
 	
 	private boolean opportunityIsReferencedByRequest(Opportunity opp) throws WorkfrontException {
-		return opportunityIsReferencedBy(Workfront.OBJCODE_ISSUE, Workfront.LEAD_OPPORTUNITY, opp)
+		return opportunityIsReferencedBy(Workfront.OBJCODE_ISSUE, Workfront.LEAD_OPPORTUNITY_ID, opp)
 				|| opportunityIsReferencedBy(Workfront.OBJCODE_ISSUE, Workfront.OPPORTUNITIES, opp);
 	}
 	
@@ -343,7 +345,7 @@ public class WorkfrontClient {
 		fields.put(Workfront.HOURS, worklog.getHoursWorked());
 		fields.put(Workfront.OWNER_ID, users.get(worklog.getJiraWorker()));
 		fields.put(Workfront.ENTRY_DATE, Workfront.dateFormatter.format(worklog.getDateWorked()));
-		fields.put(Workfront.DESCRIPTION, worklog.getDescription() + " (" + worklog.getJiraIssueUrl() + " )");
+		fields.put(Workfront.DESCRIPTION, worklog.getJiraIssueUrl() + "\n");
 		try {
 			logger.debug("Adding worklog entry: {}", fields.toString());
 			client.post(Workfront.OBJCODE_HOUR, fields);
@@ -395,7 +397,8 @@ public class WorkfrontClient {
 		map.put(Workfront.OPPORTUNITY_PROBABILITY, curopp.getProbability());
 		map.put(Workfront.COMBINED_PROBABILITY, wfObject.getCombinedProbability());
 		map.put(Workfront.OPPORTUNITY_STATE, curopp.getState());
-		map.put(Workfront.LEAD_OPPORTUNITY, curopp.getCrmOpportunityID());
+		map.put(Workfront.LEAD_OPPORTUNITY_ID, curopp.getCrmOpportunityID());
+		map.put(Workfront.LEAD_OPPORTUNITY_NAME, curopp.getName());
 		try {
 			logger.debug("Updating opportunity status {}", map.toString());
 			client.put(wfObject.getWorkfrontObjectCode(), wfObject.getWorkfrontID(), map);
@@ -668,7 +671,7 @@ public class WorkfrontClient {
 		
 		// Add the task to Workfront
 		try {
-			Map<String, Object> fields = formatTaskFields(project, task);
+			Map<String, Object> fields = formatTaskFields(project, task, true);
 			logger.debug("Adding task to Workfront: {}", fields.toString());
 			JSONObject newTask = client.post(Workfront.OBJCODE_TASK, fields);
 			task.setWorkfrontTaskID(newTask.getString(Workfront.ID));
@@ -682,6 +685,10 @@ public class WorkfrontClient {
 	}
 
 	private Map<String, Object> formatTaskFields(Project project, Task task) {
+		return formatTaskFields(project, task, false);
+	}
+	
+	private Map<String, Object> formatTaskFields(Project project, Task task, boolean newWorkfrontTask) {
 		logger.entry(project, task);
 		
 		Map<String, Object> fields = new HashMap<String, Object>();
@@ -701,7 +708,9 @@ public class WorkfrontClient {
 		if (task.getDuration() != null) {
 			fields.put(Workfront.WORK_REQ_EXPRESSION, task.getDuration() + " Hours");
 			fields.put(Workfront.DURATION_EXPRESSION, task.getDuration() + " Hours");
-			fields.put(Workfront.DURATION_TYPE, Workfront.DURATION_EFFORT_DRIVEN);
+			if (newWorkfrontTask) {
+				fields.put(Workfront.DURATION_TYPE, Workfront.DURATION_EFFORT_DRIVEN);
+			}
 		}
 		
 		if (task.getPercentComplete() != null) {

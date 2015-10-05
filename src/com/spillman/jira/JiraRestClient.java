@@ -93,13 +93,7 @@ public class JiraRestClient {
 	
 	public void createIssue(String jiraProjectID, String devteam, Task task) throws JiraRestAPIException {
 		// Create the issue
-		String params;
-		try {
-			params = formatParameters(jiraProjectID, devteam, task);
-		} catch (JiraRestAPIException e) {
-			logger.catching(e);
-			return;
-		}
+		String params = formatParameters(jiraProjectID, devteam, task);
 		JSONObject result = request(createIssueUrl, params);
 
 		// Very the results
@@ -187,11 +181,6 @@ public class JiraRestClient {
 			writer.write(params);
 			writer.close();
 			wr.close();
-			
-//			Writer out = new OutputStreamWriter(conn.getOutputStream());
-//			out.write(params);
-//			out.flush();
-//			out.close();
 			
 			// Read response
 			BufferedReader in;
