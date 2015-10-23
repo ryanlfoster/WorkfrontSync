@@ -726,6 +726,15 @@ public class WorkfrontClient {
 			// Workfront task is Complete and the new percent complete is less than 100% complete. When we
 			// see this scenario we must set the status of the Workfront task back to In Progress. Then the
 			// API will correctly update the percent complete.
+			if (!newWorkfrontTask) {
+				Task wfTask = project.getDevTaskByJiraID(task.getJiraIssueID());
+				if (wfTask == null) {
+					logger.catching(new WorkfrontException("Couldn't find Jira issue in Workfront's list of tasks!"));
+				}
+				else if (wfTask.getPercentComplete() == 100.0 && task.getPercentComplete() < 100.0) {
+					fields.put(Workfront.STATUS, Workfront.STATUS_IN_PROGRESS);
+				}
+			}
 		}
 
 		if (task.getDescription() != null) {

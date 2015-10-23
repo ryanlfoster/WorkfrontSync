@@ -167,7 +167,7 @@ public class Project extends OpportunityHolder {
 	}
 	
 	public Task getDevTaskByJiraID(String key) {
-		return wfDevTasks.get(key);
+		return jiraDevTasks.get(key);
 	}
 
 	public boolean hasWorkfrontTask(String key) {
